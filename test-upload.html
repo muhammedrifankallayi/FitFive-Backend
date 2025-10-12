@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload Test - Vestra API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .upload-section {
+            margin-bottom: 30px;
+            padding: 30px;
+            border: 2px dashed #667eea;
+            border-radius: 15px;
+            background: #f8f9ff;
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        input[type="file"] {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        input[type="file"]:hover {
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .response {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .response.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .response.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .file-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .file-preview img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Vestra Image Upload</h1>
+        
+        <!-- Multiple Upload Section -->
+        <div class="upload-section">
+            <h2>📸 Upload Multiple Images</h2>
+            <input type="file" id="multipleFiles" accept="image/*" multiple>
+            <div id="multiplePreview" class="file-preview"></div>
+            <button onclick="uploadMultiple()">Upload Multiple Images</button>
+            <div id="multipleResponse"></div>
+        </div>
+        
+        <!-- Single Upload Section -->
+        <div class="upload-section">
+            <h2>🖼️ Upload Single Image</h2>
+            <input type="file" id="singleFile" accept="image/*">
+            <div id="singlePreview" class="file-preview"></div>
+            <button onclick="uploadSingle()">Upload Single Image</button>
+            <div id="singleResponse"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        
+        // Preview multiple files
+        document.getElementById('multipleFiles').addEventListener('change', function(e) {
+            const preview = document.getElementById('multiplePreview');
+            preview.innerHTML = '';
+            
+            Array.from(e.target.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+        
+        // Preview single file
+        document.getElementById('singleFile').addEventListener('change', function(e) {
+            const preview = document.getElementById('singlePreview');
+            preview.innerHTML = '';
+            
+            if (e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+        
+        async function uploadMultiple() {
+            const fileInput = document.getElementById('multipleFiles');
+            const responseDiv = document.getElementById('multipleResponse');
+            const button = event.target;
+            
+            if (!fileInput.files.length) {
+                showResponse(responseDiv, { success: false, message: 'Please select files' }, false);
+                return;
+            }
+            
+            const formData = new FormData();
+            Array.from(fileInput.files).forEach(file => {
+                formData.append('images', file);
+            });
+            
+            button.disabled = true;
+            button.innerHTML = 'Uploading... <span class="loading"></span>';
+            
+            try {
+                const response = await fetch(`${API_URL}/upload/multiple`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                showResponse(responseDiv, data, response.ok);
+                
+                if (response.ok) {
+                    fileInput.value = '';
+                    document.getElementById('multiplePreview').innerHTML = '';
+                }
+            } catch (error) {
+                showResponse(responseDiv, { success: false, message: error.message }, false);
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'Upload Multiple Images';
+            }
+        }
+        
+        async function uploadSingle() {
+            const fileInput = document.getElementById('singleFile');
+            const responseDiv = document.getElementById('singleResponse');
+            const button = event.target;
+            
+            if (!fileInput.files.length) {
+                showResponse(responseDiv, { success: false, message: 'Please select a file' }, false);
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            
+            button.disabled = true;
+            button.innerHTML = 'Uploading... <span class="loading"></span>';
+            
+            try {
+                const response = await fetch(`${API_URL}/upload/single`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                showResponse(responseDiv, data, response.ok);
+                
+                if (response.ok) {
+                    fileInput.value = '';
+                    document.getElementById('singlePreview').innerHTML = '';
+                }
+            } catch (error) {
+                showResponse(responseDiv, { success: false, message: error.message }, false);
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'Upload Single Image';
+            }
+        }
+        
+        function showResponse(element, data, isSuccess) {
+            element.className = `response ${isSuccess ? 'success' : 'error'}`;
+            element.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+    </script>
+</body>
+</html>
