@@ -103,7 +103,7 @@ class ItemController {
         description: itemData.description,
         slug,
         categoryId: itemData.categoryId,
-        image: (itemData.images && itemData.images[0]) || undefined,
+        image: itemData.image,
         tags: itemData.tags || [],
         attributes: itemData.attributes || {},
         isActive: itemData.isActive !== undefined ? itemData.isActive : true,

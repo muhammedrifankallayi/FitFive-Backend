@@ -7,6 +7,8 @@ import sizeRoutes from './size.routes';
 import colorRoutes from './color.routes';
 import shippingRoutes from './shippingAddress.routes';
 import userRoutes from './user.routes';
+import inventoryRoutes from './inventory.routes';
+import shiprocketRoutes from '../shiprocket/routes';
 
 const router = Router();
 
@@ -37,10 +39,16 @@ router.use('/sizes', sizeRoutes);
 // Color routes
 router.use('/colors', colorRoutes);
 
+// Inventory routes
+router.use('/inventory', inventoryRoutes);
+
 // Shipping address routes
 router.use('/shipping-addresses', shippingRoutes);
 
 // User routes
 router.use('/users', userRoutes);
+
+// Shiprocket routes
+router.use('/shiprocket', shiprocketRoutes);
 
 export default router;

@@ -23,14 +23,23 @@ class App {
   }
 
   private initializeMiddlewares(): void {
-    // Security middleware
-    this.app.use(helmet());
+    // Security middleware with relaxed cross-origin policy
+    this.app.use(
+      helmet({
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+        crossOriginEmbedderPolicy: false,
+      })
+    );
 
-    // CORS middleware
+    // CORS middleware - must be before other middlewares
     this.app.use(
       cors({
         origin: config.cors.origin,
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+        exposedHeaders: ['Content-Length', 'Content-Type'],
+        maxAge: 600, // Cache preflight requests for 10 minutes
       })
     );
 
@@ -49,9 +58,23 @@ class App {
     }
     this.app.use(requestLogger);
 
-    // Static files - serve uploaded files
+    // Static files - serve uploaded files with CORS support
     this.app.use(
       '/uploads',
+      (_req, res, next) => {
+        // Set CORS headers explicitly for static files
+        res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4200');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        // Disable caching to prevent 304 issues during development
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        // Set Cross-Origin-Resource-Policy to allow cross-origin access
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        next();
+      },
       express.static(path.join(process.cwd(), 'uploads'))
     );
   }

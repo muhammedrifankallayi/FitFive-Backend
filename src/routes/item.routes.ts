@@ -28,7 +28,7 @@ router.get('/:id', validateId, itemController.getItemById);
  * @route   POST /api/items
  * @desc    Create new item
  * @access  Public
- * @body    { name, description, price, sku, categoryId, images[], tags[], ... }
+ * @body    { name, description, categoryId, image?, tags?, attributes?, isActive?, isFeatured? }
  */
 router.post('/', validateCreateItem, itemController.createItem);
 
@@ -36,7 +36,7 @@ router.post('/', validateCreateItem, itemController.createItem);
  * @route   PUT /api/items/:id
  * @desc    Update item
  * @access  Public
- * @body    { name?, description?, price?, images[], ... }
+ * @body    { name?, description?, categoryId?, image?, tags?, attributes?, isActive?, isFeatured? }
  */
 router.put('/:id', validateId, validateUpdateItem, itemController.updateItem);
 

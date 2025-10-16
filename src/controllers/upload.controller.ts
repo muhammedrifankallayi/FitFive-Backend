@@ -19,7 +19,7 @@ class UploadController {
       const uploadedFiles: UploadedFileInfo[] = req.files.map((file: Express.Multer.File) => ({
         fieldname: file.fieldname,
         originalname: file.originalname,
-        encoding: file.encoding,
+        encoding: file.encoding,  
         mimetype: file.mimetype,
         destination: file.destination,
         filename: file.filename,

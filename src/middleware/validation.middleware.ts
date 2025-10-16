@@ -33,53 +33,25 @@ export const validateCreateItem = [
     .withMessage('Description is required')
     .isLength({ min: 10 })
     .withMessage('Description must be at least 10 characters'),
-  body('price')
-    .notEmpty()
-    .withMessage('Price is required')
-    .isFloat({ min: 0 })
-    .withMessage('Price must be a positive number'),
-  body('compareAtPrice')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Compare at price must be a positive number'),
-  body('costPrice')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Cost price must be a positive number'),
-  body('sku')
-    .trim()
-    .notEmpty()
-    .withMessage('SKU is required')
-    .isLength({ min: 2, max: 50 })
-    .withMessage('SKU must be between 2 and 50 characters'),
-  body('barcode')
-    .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('Barcode must not exceed 50 characters'),
-  body('quantity')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Quantity must be a non-negative integer'),
   body('categoryId')
     .trim()
     .notEmpty()
     .withMessage('Category ID is required')
-    .isUUID()
-    .withMessage('Category ID must be a valid UUID'),
-  body('images')
+    .isMongoId()
+    .withMessage('Category ID must be a valid MongoDB ID'),
+  body('image')
     .optional()
-    .isArray()
-    .withMessage('Images must be an array of strings'),
-  body('images.*')
-    .optional()
+    .trim()
     .isString()
-    .withMessage('Each image must be a string'),
+    .withMessage('Image must be a string'),
   body('tags')
     .optional()
     .isArray()
     .withMessage('Tags must be an array of strings'),
-  body('tags.*').optional().isString().withMessage('Each tag must be a string'),
+  body('tags.*')
+    .optional()
+    .isString()
+    .withMessage('Each tag must be a string'),
   body('attributes')
     .optional()
     .isObject()
@@ -106,50 +78,24 @@ export const validateUpdateItem = [
     .trim()
     .isLength({ min: 10 })
     .withMessage('Description must be at least 10 characters'),
-  body('price')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Price must be a positive number'),
-  body('compareAtPrice')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Compare at price must be a positive number'),
-  body('costPrice')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Cost price must be a positive number'),
-  body('sku')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('SKU must be between 2 and 50 characters'),
-  body('barcode')
-    .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('Barcode must not exceed 50 characters'),
-  body('quantity')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Quantity must be a non-negative integer'),
   body('categoryId')
     .optional()
     .trim()
-    .isUUID()
-    .withMessage('Category ID must be a valid UUID'),
-  body('images')
+    .isMongoId()
+    .withMessage('Category ID must be a valid MongoDB ID'),
+  body('image')
     .optional()
-    .isArray()
-    .withMessage('Images must be an array of strings'),
-  body('images.*')
-    .optional()
+    .trim()
     .isString()
-    .withMessage('Each image must be a string'),
+    .withMessage('Image must be a string'),
   body('tags')
     .optional()
     .isArray()
     .withMessage('Tags must be an array of strings'),
-  body('tags.*').optional().isString().withMessage('Each tag must be a string'),
+  body('tags.*')
+    .optional()
+    .isString()
+    .withMessage('Each tag must be a string'),
   body('attributes')
     .optional()
     .isObject()
