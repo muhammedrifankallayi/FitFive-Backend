@@ -2,6 +2,7 @@ import { model, Model, Schema } from "mongoose";
 
 // Customer Shipping Address Interface
 export interface IShippingAddressModel {
+  userId: string;
   fullName: string;
   phone: string;
   email?: string;
@@ -16,6 +17,12 @@ export interface IShippingAddressModel {
 
 
 const shippingAddressSchema = new Schema({
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'User ID is required'],
+    index: true
+  },
   fullName: {
     type: String,
     required: [true, 'Full name is required'],

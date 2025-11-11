@@ -37,7 +37,7 @@ class ItemController {
 
       const total = await ItemModel.countDocuments(filter);
       const sortOrderNum = sortOrder === 'asc' ? 1 : -1;
-      const data = await ItemModel.find(filter)
+      const data = await ItemModel.find(filter).populate('categoryId')
         .sort({ [sortBy]: sortOrderNum })
         .skip((pageNum - 1) * limitNum)
         .limit(limitNum)

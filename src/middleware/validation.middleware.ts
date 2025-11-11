@@ -258,7 +258,7 @@ export const validateUpdateColor = [
 
 // ID validation
 export const validateId = [
-  param('id').trim().isUUID().withMessage('ID must be a valid UUID'),
+  param('id').trim().isMongoId().withMessage('ID must be a valid MongoDB ObjectId'),
   handleValidationErrors,
 ];
 
@@ -295,6 +295,12 @@ export const validateQuery = [
 
 // Shipping Address validations
 export const validateCreateShippingAddress = [
+  body('userId')
+    .trim()
+    .notEmpty()
+    .withMessage('User ID is required')
+    .isMongoId()
+    .withMessage('User ID must be a valid MongoDB ObjectId'),
   body('fullName')
     .trim()
     .notEmpty()
@@ -340,6 +346,11 @@ export const validateCreateShippingAddress = [
 ];
 
 export const validateUpdateShippingAddress = [
+  body('userId')
+    .optional()
+    .trim()
+    .isMongoId()
+    .withMessage('User ID must be a valid MongoDB ObjectId'),
   body('fullName')
     .optional()
     .trim()

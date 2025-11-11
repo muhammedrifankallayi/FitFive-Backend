@@ -1,0 +1,1361 @@
+{
+  "info": {
+    "name": "FitFive Backend API",
+    "description": "Complete API collection for FitFive Backend - E-commerce platform with authentication, inventory management, and Shiprocket integration",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shiprocketToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Server Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the server is running"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('authToken', response.data.token);",
+                  "    }",
+                  "    if (response.data && response.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('authToken', response.data.token);",
+                  "    }",
+                  "    if (response.data && response.data.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"avatar\": \"https://example.com/avatar.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Get All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "users"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('authToken', response.data.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories?page=1&limit=10&search=&isActive=true&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "category_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electronics\",\n  \"description\": \"Electronic devices and gadgets\",\n  \"images\": [\"/uploads/electronics.jpg\"],\n  \"parentId\": null,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            }
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electronics Updated\",\n  \"description\": \"Updated description for electronics\",\n  \"images\": [\"/uploads/electronics-updated.jpg\"],\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "category_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "category_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Category with Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/:id/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", ":id", "items"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "category_id_here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "Get All Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/items?page=1&limit=10&search=&categoryId=&isActive=true&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["items"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "categoryId",
+                  "value": ""
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Item by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/items/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["items", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "item_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smart Phone\",\n  \"description\": \"Latest smartphone with advanced features\",\n  \"categoryId\": \"category_id_here\",\n  \"image\": \"/uploads/smartphone.jpg\",\n  \"tags\": [\"electronics\", \"mobile\", \"smartphone\"],\n  \"attributes\": {\n    \"brand\": \"TechBrand\",\n    \"model\": \"X1\",\n    \"warranty\": \"1 year\"\n  },\n  \"isActive\": true,\n  \"isFeatured\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["items"]
+            }
+          }
+        },
+        {
+          "name": "Update Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smart Phone Updated\",\n  \"description\": \"Updated smartphone description\",\n  \"isActive\": true,\n  \"isFeatured\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/items/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["items", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "item_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/items/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["items", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "item_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Items by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/items/category/:categoryId",
+              "host": ["{{baseUrl}}"],
+              "path": ["items", "category", ":categoryId"],
+              "variable": [
+                {
+                  "key": "categoryId",
+                  "value": "category_id_here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sizes",
+      "item": [
+        {
+          "name": "Get All Sizes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sizes?page=1&limit=10&search=&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["sizes"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Size by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sizes/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["sizes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "size_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Size",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Large\",\n  \"code\": \"L\",\n  \"description\": \"Large size\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sizes",
+              "host": ["{{baseUrl}}"],
+              "path": ["sizes"]
+            }
+          }
+        },
+        {
+          "name": "Update Size",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Extra Large\",\n  \"code\": \"XL\",\n  \"description\": \"Extra large size\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sizes/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["sizes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "size_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Size",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sizes/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["sizes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "size_id_here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Colors",
+      "item": [
+        {
+          "name": "Get All Colors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/colors?page=1&limit=10&search=&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["colors"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Color by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/colors/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["colors", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "color_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Color",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Red\",\n  \"code\": \"#FF0000\",\n  \"description\": \"Bright red color\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/colors",
+              "host": ["{{baseUrl}}"],
+              "path": ["colors"]
+            }
+          }
+        },
+        {
+          "name": "Update Color",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dark Red\",\n  \"code\": \"#8B0000\",\n  \"description\": \"Dark red color\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/colors/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["colors", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "color_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Color",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/colors/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["colors", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "color_id_here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Get All Inventory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory?page=1&limit=10&search=&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Inventory by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "inventory_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Inventory by Item ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/item/:itemId",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "item", ":itemId"],
+              "variable": [
+                {
+                  "key": "itemId",
+                  "value": "item_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Low Stock Inventory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/low-stock?threshold=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "low-stock"],
+              "query": [
+                {
+                  "key": "threshold",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Inventory",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"item\": \"item_id_here\",\n  \"price\": 99.99,\n  \"compareAtPrice\": 129.99,\n  \"costPrice\": 75.00,\n  \"size\": \"size_id_here\",\n  \"color\": \"color_id_here\",\n  \"stock\": 50,\n  \"sku\": \"SKU-001\",\n  \"barcode\": \"1234567890\",\n  \"tags\": [\"new\", \"featured\"],\n  \"attributes\": {\n    \"material\": \"cotton\",\n    \"care\": \"machine wash\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory"]
+            }
+          }
+        },
+        {
+          "name": "Update Inventory",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 89.99,\n  \"stock\": 25,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "inventory_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Inventory",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "inventory_id_here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shipping Addresses",
+      "item": [
+        {
+          "name": "Get All Shipping Addresses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipping-addresses?page=1&limit=10&search=&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipping-addresses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Shipping Address by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipping-addresses/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipping-addresses", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "address_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Shipping Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"phone\": \"9876543210\",\n  \"email\": \"john.doe@example.com\",\n  \"address\": \"123 Main Street\",\n  \"address2\": \"Apt 4B\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"pincode\": \"400001\",\n  \"isDefault\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shipping-addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipping-addresses"]
+            }
+          }
+        },
+        {
+          "name": "Update Shipping Address",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"phone\": \"9876543211\",\n  \"address\": \"456 New Street\",\n  \"isDefault\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shipping-addresses/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipping-addresses", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "address_id_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Shipping Address",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipping-addresses/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["shipping-addresses", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "address_id_here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/:id/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "user_id_here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "File Upload",
+      "item": [
+        {
+          "name": "Upload Multiple Images",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload/multiple",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "multiple"]
+            }
+          }
+        },
+        {
+          "name": "Upload Single Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload/single",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "single"]
+            }
+          }
+        },
+        {
+          "name": "Get All Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/upload/files",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "files"]
+            }
+          }
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/upload/file/:filename",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "file", ":filename"],
+              "variable": [
+                {
+                  "key": "filename",
+                  "value": "image.jpg"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shiprocket",
+      "item": [
+        {
+          "name": "Authentication",
+          "item": [
+            {
+              "name": "Shiprocket Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const response = pm.response.json();",
+                      "    if (response.data && response.data.token) {",
+                      "        pm.collectionVariables.set('shiprocketToken', response.data.token);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"your-shiprocket-email@example.com\",\n  \"password\": \"your-shiprocket-password\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shiprocket/auth/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["shiprocket", "auth", "login"]
+                }
+              }
+            },
+            {
+              "name": "Shiprocket Logout",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{shiprocketToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shiprocket/auth/logout",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["shiprocket", "auth", "logout"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pickup Management",
+          "item": [
+            {
+              "name": "Add Pickup Location",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{shiprocketToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"pickup_location\": \"Main Warehouse\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"9876543210\",\n  \"address\": \"123 Main Street, Building A\",\n  \"address_2\": \"Near Metro Station\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"pin_code\": \"400001\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shiprocket/pickup/add",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["shiprocket", "pickup", "add"]
+                }
+              }
+            },
+            {
+              "name": "Get All Pickup Locations",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{shiprocketToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shiprocket/pickup/locations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["shiprocket", "pickup", "locations"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

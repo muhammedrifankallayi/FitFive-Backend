@@ -111,4 +111,22 @@ router.put('/change-password', protect, changePasswordValidation, handleValidati
  */
 router.get('/users', protect, restrictTo('admin'), authController.getAllUsers);
 
+/**
+ * @route   POST /api/auth/refresh
+ * @desc    Refresh access token using refresh token
+ * @access  Public
+ */
+router.post('/refresh', 
+  body('refreshToken').notEmpty().withMessage('Refresh token is required'),
+  handleValidationErrors,
+  authController.refreshToken
+);
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Logout and invalidate refresh token
+ * @access  Private
+ */
+router.post('/logout', protect, authController.logout);
+
 export default router;

@@ -9,6 +9,8 @@ export interface IUser extends Document {
   type:'customer' | 'reseller' |'owner';
   isActive: boolean;
   avatar?: string;
+  refreshToken?: string;
+  refreshTokenExpiry?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -57,6 +59,14 @@ const userSchema = new Schema<IUser>(
     avatar: {
       type: String,
       default: null,
+    },
+    refreshToken: {
+      type: String,
+      select: false, // Don't return refresh token by default
+    },
+    refreshTokenExpiry: {
+      type: Date,
+      select: false,
     },
   },
   {

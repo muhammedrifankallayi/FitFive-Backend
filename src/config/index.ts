@@ -14,6 +14,8 @@ interface Config {
   jwt: {
     secret: string;
     expire: string;
+    refreshSecret: string;
+    refreshExpire: string;
   };
   upload: {
     maxFileSize: number;
@@ -41,7 +43,9 @@ const config: Config = {
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'fallback-secret-key',
-    expire: process.env.JWT_EXPIRE || '7d',
+    expire: process.env.JWT_EXPIRE || '15m', // Short-lived access token
+    refreshSecret: process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-key',
+    refreshExpire: process.env.JWT_REFRESH_EXPIRE || '7d', // Long-lived refresh token
   },
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880', 10), // 5MB default

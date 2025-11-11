@@ -48,6 +48,7 @@ export interface AuthResponse {
   success: boolean;
   message: string;
   token: string;
+  refreshToken?: string;
   user: IUser;
 }
 
@@ -55,6 +56,12 @@ export interface JwtPayload {
   id: string;
   email: string;
   role: string;
+  type?: string; // 'access' or 'refresh'
+}
+
+export interface RefreshTokenPayload {
+  id: string;
+  type: 'refresh';
 }
 
 // Category Entity

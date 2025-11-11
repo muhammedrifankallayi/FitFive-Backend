@@ -7,14 +7,39 @@ import config from '../config';
 
 class AuthController {
   /**
-   * Generate JWT Token
+   * Generate Access Token (short-lived)
    */
-  private generateToken(id: string, email: string, role: string): string {
+  private generateAccessToken(id: string, email: string, role: string): string {
     return jwt.sign(
       { id, email, role }, 
       config.jwt.secret, 
       { expiresIn: config.jwt.expire } as jwt.SignOptions
     );
+  }
+
+  /**
+   * Generate Refresh Token (long-lived)
+   */
+  private generateRefreshToken(id: string): string {
+    return jwt.sign(
+      { id, type: 'refresh' }, 
+      config.jwt.refreshSecret, 
+      { expiresIn: config.jwt.refreshExpire } as jwt.SignOptions
+    );
+  }
+
+  /**
+   * Generate both tokens
+   */
+  private generateTokens(id: string, email: string, role: string) {
+    const accessToken = this.generateAccessToken(id, email, role);
+    const refreshToken = this.generateRefreshToken(id);
+    
+    // Calculate refresh token expiry date
+    const refreshTokenExpiry = new Date();
+    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7); // 7 days
+    
+    return { accessToken, refreshToken, refreshTokenExpiry };
   }
 
   /**
@@ -39,19 +64,24 @@ class AuthController {
         role: role || 'user',
       });
 
-      // Generate token
-      const token = this.generateToken(
+      // Generate tokens
+      const { accessToken, refreshToken, refreshTokenExpiry } = this.generateTokens(
         (user._id as any).toString(),
         user.email,
         user.role
       );
 
-      // Remove password from response
+      // Save refresh token to database
+      await User.findByIdAndUpdate(user._id, {
+        refreshToken,
+        refreshTokenExpiry,
+      });
 
       const response: AuthResponse = {
         success: true,
         message: 'User registered successfully',
-        token,
+        token: accessToken,
+        refreshToken,
         user: user,
       };
 
@@ -88,23 +118,27 @@ class AuthController {
       const isPasswordValid = await user.comparePassword(password);
 
       if (!isPasswordValid) {
-        throw new AppError('Invalid credentials', 401);
+        throw new AppError('Invalid Password', 401);
       }
 
-      // Generate token
-      const token = this.generateToken(
+      // Generate tokens
+      const { accessToken, refreshToken, refreshTokenExpiry } = this.generateTokens(
         (user._id as any).toString(),
         user.email,
         user.role
       );
 
-      // Remove password from response
-
+      // Save refresh token to database
+      await User.findByIdAndUpdate(user._id, {
+        refreshToken,
+        refreshTokenExpiry,
+      });
 
       const response: AuthResponse = {
         success: true,
         message: 'Login successful',
-        token,
+        token: accessToken,
+        refreshToken,
         user: user,
       };
 
@@ -244,6 +278,98 @@ class AuthController {
         success: true,
         message: `Retrieved ${users.length} users`,
         data: users,
+      };
+
+      res.status(200).json(response);
+    }
+  );
+
+  /**
+   * Refresh access token using refresh token
+   * @route POST /api/auth/refresh
+   */
+  refreshToken = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        throw new AppError('Refresh token is required', 400);
+      }
+
+      try {
+        // Verify refresh token
+        const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret) as any;
+
+        if (decoded.type !== 'refresh') {
+          throw new AppError('Invalid token type', 401);
+        }
+
+        // Find user with this refresh token
+        const user: IUser | null = await User.findById(decoded.id).select('+refreshToken +refreshTokenExpiry');
+
+        if (!user) {
+          throw new AppError('User not found', 404);
+        }
+
+        if (!user.isActive) {
+          throw new AppError('User account is deactivated', 403);
+        }
+
+        // Check if refresh token matches
+        if (user.refreshToken !== refreshToken) {
+          throw new AppError('Invalid refresh token', 401);
+        }
+
+        // Check if refresh token is expired
+        if (user.refreshTokenExpiry && user.refreshTokenExpiry < new Date()) {
+          throw new AppError('Refresh token expired', 401);
+        }
+
+        // Generate new access token
+        const newAccessToken = this.generateAccessToken(
+          (user._id as any).toString(),
+          user.email,
+          user.role
+        );
+
+        const response: ApiResponse<{ token: string }> = {
+          success: true,
+          message: 'Token refreshed successfully',
+          data: { token: newAccessToken },
+        };
+
+        res.status(200).json(response);
+      } catch (error: any) {
+        if (error.name === 'JsonWebTokenError') {
+          throw new AppError('Invalid refresh token', 401);
+        } else if (error.name === 'TokenExpiredError') {
+          throw new AppError('Refresh token expired', 401);
+        } else {
+          throw error;
+        }
+      }
+    }
+  );
+
+  /**
+   * Logout - Invalidate refresh token
+   * @route POST /api/auth/logout
+   */
+  logout = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      if (!req.user) {
+        throw new AppError('User not authenticated', 401);
+      }
+
+      // Clear refresh token from database
+      await User.findByIdAndUpdate(req.user._id, {
+        refreshToken: null,
+        refreshTokenExpiry: null,
+      });
+
+      const response: ApiResponse = {
+        success: true,
+        message: 'Logged out successfully',
       };
 
       res.status(200).json(response);
