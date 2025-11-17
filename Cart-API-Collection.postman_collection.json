@@ -1,0 +1,428 @@
+{
+  "info": {
+    "name": "FitFive Cart API",
+    "description": "Cart management API endpoints for FitFive e-commerce platform. Includes add to cart, update quantities, remove items, and cart management operations.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT authentication token (required for all cart operations)"
+    },
+    {
+      "key": "testInventoryId",
+      "value": "",
+      "type": "string",
+      "description": "Sample inventory ID for testing cart operations"
+    }
+  ],
+  "item": [
+    {
+      "name": "Cart Operations",
+      "item": [
+        {
+          "name": "Get User Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart"]
+            },
+            "description": "Retrieve the authenticated user's cart with all items and populated product details including inventory stock information."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cart",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["cart"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Cart retrieved successfully\",\n  \"data\": {\n    \"_id\": \"cart_id\",\n    \"userId\": \"user_id\",\n    \"items\": [\n      {\n        \"inventoryId\": {\n          \"_id\": \"inventory_id\",\n          \"price\": 29.99,\n          \"compareAtPrice\": 39.99,\n          \"stock\": 50,\n          \"sku\": \"SKU001\",\n          \"isActive\": true,\n          \"item\": {\n            \"name\": \"Product Name\",\n            \"description\": \"Product description\",\n            \"slug\": \"product-slug\",\n            \"images\": [\"image1.jpg\"]\n          },\n          \"size\": {\n            \"name\": \"Medium\",\n            \"code\": \"M\"\n          },\n          \"color\": {\n            \"name\": \"Blue\",\n            \"hex\": \"#0066cc\",\n            \"rgb\": \"0,102,204\"\n          }\n        },\n        \"qty\": 2\n      }\n    ],\n    \"totalAmount\": 59.98,\n    \"createdAt\": \"2025-11-15T00:00:00.000Z\",\n    \"updatedAt\": \"2025-11-15T00:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Cart Item Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cart/count",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart", "count"]
+            },
+            "description": "Get the total number of items in the user's cart (sum of all quantities)."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cart/count",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["cart", "count"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Cart count retrieved successfully\",\n  \"data\": {\n    \"count\": 5\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inventoryId\": \"{{testInventoryId}}\",\n  \"qty\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cart/add",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart", "add"]
+            },
+            "description": "Add a new item to the cart or update quantity if item already exists. Validates stock availability and item status."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"inventoryId\": \"inventory_id_here\",\n  \"qty\": 2\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/cart/add",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["cart", "add"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Item added to cart successfully\",\n  \"data\": {\n    \"_id\": \"cart_id\",\n    \"userId\": \"user_id\",\n    \"items\": [...],\n    \"totalAmount\": 59.98\n  }\n}"
+            },
+            {
+              "name": "Validation Error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"inventoryId\": \"\",\n  \"qty\": 0\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/cart/add",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["cart", "add"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Inventory ID and quantity are required\"\n}"
+            },
+            {
+              "name": "Insufficient Stock",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"inventoryId\": \"inventory_id_here\",\n  \"qty\": 100\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/cart/add",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["cart", "add"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Only 50 items available in stock\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Cart Item Quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qty\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cart/items/{{testInventoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart", "items", "{{testInventoryId}}"]
+            },
+            "description": "Update the quantity of a specific item in the cart. Validates stock availability and item status."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"qty\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/cart/items/inventory_id_here",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["cart", "items", "inventory_id_here"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Cart item updated successfully\",\n  \"data\": {\n    \"_id\": \"cart_id\",\n    \"userId\": \"user_id\",\n    \"items\": [...],\n    \"totalAmount\": 89.97\n  }\n}"
+            },
+            {
+              "name": "Item Not Found",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"qty\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/cart/items/invalid_inventory_id",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["cart", "items", "invalid_inventory_id"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Item not found in cart\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Remove Item from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cart/items/{{testInventoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart", "items", "{{testInventoryId}}"]
+            },
+            "description": "Remove a specific item completely from the cart."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cart/items/inventory_id_here",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["cart", "items", "inventory_id_here"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Item removed from cart successfully\",\n  \"data\": {\n    \"_id\": \"cart_id\",\n    \"userId\": \"user_id\",\n    \"items\": [...],\n    \"totalAmount\": 29.99\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart"]
+            },
+            "description": "Remove all items from the cart, making it empty."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cart",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["cart"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Cart cleared successfully\",\n  \"data\": {\n    \"_id\": \"cart_id\",\n    \"userId\": \"user_id\",\n    \"items\": [],\n    \"totalAmount\": 0\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-set authorization header if authToken variable is set",
+          "if (pm.variables.get('authToken')) {",
+          "    pm.request.headers.add({",
+          "        key: 'Authorization',",
+          "        value: 'Bearer ' + pm.variables.get('authToken')",
+          "    });",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Basic response validation",
+          "pm.test('Response status code is successful', function () {",
+          "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+          "});",
+          "",
+          "pm.test('Response has success field', function () {",
+          "    const responseJson = pm.response.json();",
+          "    pm.expect(responseJson).to.have.property('success');",
+          "});",
+          "",
+          "pm.test('Response has message field', function () {",
+          "    const responseJson = pm.response.json();",
+          "    pm.expect(responseJson).to.have.property('message');",
+          "});"
+        ]
+      }
+    }
+  ]
+}

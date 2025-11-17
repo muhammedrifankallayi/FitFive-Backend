@@ -1,0 +1,225 @@
+{
+  "info": {
+    "name": "FitFive Public API",
+    "description": "Public endpoints for FitFive e-commerce platform. These endpoints do not require authentication and can be used to fetch publicly available data like products and categories.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Public Endpoints",
+      "item": [
+        {
+          "name": "Get Available Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/public/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "items"]
+            },
+            "description": "Fetch all available inventory items that are active and in stock. Returns detailed product information including item details, pricing, and stock levels."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/public/items",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["public", "items"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Found 25 available items\",\n  \"data\": [\n    {\n      \"_id\": \"inventory_id_1\",\n      \"price\": 29.99,\n      \"compareAtPrice\": 39.99,\n      \"costPrice\": 20.00,\n      \"size\": \"size_id\",\n      \"color\": \"color_id\",\n      \"item\": {\n        \"_id\": \"item_id_1\",\n        \"name\": \"Fitness T-Shirt\",\n        \"description\": \"Premium quality fitness t-shirt\",\n        \"slug\": \"fitness-t-shirt\",\n        \"images\": [\"image1.jpg\", \"image2.jpg\"],\n        \"category\": \"category_id\",\n        \"isActive\": true,\n        \"createdAt\": \"2025-11-15T00:00:00.000Z\",\n        \"updatedAt\": \"2025-11-15T00:00:00.000Z\"\n      },\n      \"stock\": 50,\n      \"sku\": \"FIT-TS-001\",\n      \"tags\": [\"fitness\", \"apparel\", \"unisex\"],\n      \"attributes\": {\n        \"material\": \"Cotton Blend\",\n        \"care\": \"Machine Wash\"\n      },\n      \"barcode\": \"1234567890123\",\n      \"isActive\": true,\n      \"createdAt\": \"2025-11-15T00:00:00.000Z\",\n      \"updatedAt\": \"2025-11-15T00:00:00.000Z\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "Empty Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/public/items",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["public", "items"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Found 0 available items\",\n  \"data\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/public/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "categories"]
+            },
+            "description": "Fetch all active product categories available in the system. Returns category information that can be used for filtering and navigation."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/public/categories",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["public", "categories"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Found 8 categories\",\n  \"data\": [\n    {\n      \"_id\": \"category_id_1\",\n      \"name\": \"Fitness Apparel\",\n      \"description\": \"High-quality fitness and workout clothing\",\n      \"slug\": \"fitness-apparel\",\n      \"image\": \"fitness-apparel.jpg\",\n      \"isActive\": true,\n      \"sortOrder\": 1,\n      \"createdAt\": \"2025-11-15T00:00:00.000Z\",\n      \"updatedAt\": \"2025-11-15T00:00:00.000Z\"\n    },\n    {\n      \"_id\": \"category_id_2\",\n      \"name\": \"Supplements\",\n      \"description\": \"Nutritional supplements and protein powders\",\n      \"slug\": \"supplements\",\n      \"image\": \"supplements.jpg\",\n      \"isActive\": true,\n      \"sortOrder\": 2,\n      \"createdAt\": \"2025-11-15T00:00:00.000Z\",\n      \"updatedAt\": \"2025-11-15T00:00:00.000Z\"\n    },\n    {\n      \"_id\": \"category_id_3\",\n      \"name\": \"Equipment\",\n      \"description\": \"Fitness equipment and accessories\",\n      \"slug\": \"equipment\",\n      \"image\": \"equipment.jpg\",\n      \"isActive\": true,\n      \"sortOrder\": 3,\n      \"createdAt\": \"2025-11-15T00:00:00.000Z\",\n      \"updatedAt\": \"2025-11-15T00:00:00.000Z\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "Empty Categories",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/public/categories",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["public", "categories"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Found 0 categories\",\n  \"data\": []\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "System Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the server is running and responding properly. This endpoint can be used for monitoring and health checks."
+          },
+          "response": [
+            {
+              "name": "Server Running",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Server is running\",\n  \"timestamp\": \"2025-11-15T12:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// No authentication required for public endpoints",
+          "console.log('Making request to public endpoint - no auth required');"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Basic response validation for public endpoints",
+          "pm.test('Response status code is 200', function () {",
+          "    pm.response.to.have.status(200);",
+          "});",
+          "",
+          "pm.test('Response has success field', function () {",
+          "    const responseJson = pm.response.json();",
+          "    pm.expect(responseJson).to.have.property('success');",
+          "    pm.expect(responseJson.success).to.be.true;",
+          "});",
+          "",
+          "pm.test('Response has message field', function () {",
+          "    const responseJson = pm.response.json();",
+          "    pm.expect(responseJson).to.have.property('message');",
+          "});",
+          "",
+          "pm.test('Response has data field', function () {",
+          "    const responseJson = pm.response.json();",
+          "    pm.expect(responseJson).to.have.property('data');",
+          "});",
+          "",
+          "// Set environment variables for testing if response contains useful data",
+          "if (pm.response.json().data && pm.response.json().data.length > 0) {",
+          "    const firstItem = pm.response.json().data[0];",
+          "    if (firstItem._id) {",
+          "        pm.environment.set('sampleItemId', firstItem._id);",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ]
+}

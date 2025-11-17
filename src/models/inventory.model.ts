@@ -11,9 +11,10 @@ export interface IInventory {
   item: Types.ObjectId;
   stock: number;
   sku?: string;
-   tags: string[];
+  tags: string[];
   attributes: Record<string, any>;
   barcode?: string;
+  isActive: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -76,6 +77,10 @@ const inventorySchema = new Schema<IInventory>(
     attributes: {
         type: Schema.Types.Mixed,
         default: {}
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   {
