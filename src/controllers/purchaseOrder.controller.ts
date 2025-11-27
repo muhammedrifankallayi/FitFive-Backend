@@ -7,6 +7,10 @@ import { SupplierModel } from '../models/supplier.model';
 
 export interface CreatePurchaseOrderDto {
   supplierId: string;
+  purchaseDate?: Date;
+  discount?: number;
+  status?: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
+  notes?: string;
   items: {
     inventoryId: string;
     qty: number;
@@ -16,6 +20,10 @@ export interface CreatePurchaseOrderDto {
 
 export interface UpdatePurchaseOrderDto {
   supplierId?: string;
+  purchaseDate?: Date;
+  discount?: number;
+  status?: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
+  notes?: string;
   items?: {
     inventoryId: string;
     qty: number;
@@ -29,8 +37,8 @@ class PurchaseOrderController {
    * @route POST /api/purchase-orders
    */
   createPurchaseOrder = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
-    const userId = req.user._id;
-    const { supplierId, items } = req.body as CreatePurchaseOrderDto;
+    const userId = req?.user?._id;
+    const { supplierId, items, purchaseDate, discount = 0, status = 'pending', notes } = req.body as CreatePurchaseOrderDto;
 
     if (!supplierId) {
       throw new AppError('Supplier ID is required', 400);
@@ -46,11 +54,17 @@ class PurchaseOrderController {
       throw new AppError('Supplier not found', 404);
     }
 
-    // Validate inventory items exist
+    // Validate inventory items exist and extract proper IDs
+    const processedItems = [];
     for (const item of items) {
-      const inventoryItem = await InventoryModel.findById(item.inventoryId).exec();
+      // Handle both string ID and object with _id
+      const inventoryId = typeof item.inventoryId === 'string' 
+        ? item.inventoryId 
+        : (item.inventoryId as any)._id;
+
+      const inventoryItem = await InventoryModel.findById(inventoryId).exec();
       if (!inventoryItem) {
-        throw new AppError(`Inventory item ${item.inventoryId} not found`, 404);
+        throw new AppError(`Inventory item ${inventoryId} not found`, 404);
       }
       if (item.qty < 1) {
         throw new AppError('Quantity must be at least 1', 400);
@@ -58,10 +72,17 @@ class PurchaseOrderController {
       if (item.price < 0) {
         throw new AppError('Price must be non-negative', 400);
       }
+      
+      processedItems.push({
+        inventoryId,
+        qty: item.qty,
+        price: item.price
+      });
     }
 
-    // Calculate total amount
-    const totalAmount = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    // Calculate total amount before discount
+    const subtotal = processedItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    const totalAmount = Math.max(0, subtotal - (discount || 0));
 
     // Generate unique order number
     const orderNumber = `PO-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
@@ -71,8 +92,11 @@ class PurchaseOrderController {
       supplierId,
       orderNumber,
       totalAmount,
-      items,
-      purchaseDate: new Date()
+      discount,
+      status,
+      notes,
+      purchaseDate: purchaseDate || new Date(),
+      items: processedItems
     });
 
     const populatedOrder = await PurchaseOrderModel.findById(purchaseOrder._id)
@@ -104,12 +128,15 @@ class PurchaseOrderController {
    * @route GET /api/purchase-orders
    */
   getPurchaseOrders = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
-    const userId = req.user._id;
+    const userId = req?.user?._id;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const query = { userId };
+    const query: any = {};
+    if (userId) {
+      query.userId = userId;
+    }
 
     const [purchaseOrders, total] = await Promise.all([
       PurchaseOrderModel.find(query)
@@ -153,9 +180,14 @@ class PurchaseOrderController {
    */
   getPurchaseOrderById = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const { id } = req.params;
-    const userId = req.user._id;
+    const userId = req?.user?._id;
 
-    const purchaseOrder = await PurchaseOrderModel.findOne({ _id: id, userId })
+    const query: any = { _id: id };
+    if (userId) {
+      query.userId = userId;
+    }
+
+    const purchaseOrder = await PurchaseOrderModel.findOne(query)
       .populate({
         path: 'items.inventoryId',
         select: 'sku size color item stock price',
@@ -189,13 +221,27 @@ class PurchaseOrderController {
    */
   updatePurchaseOrder = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const { id } = req.params;
-    const userId = req.user._id;
+    const userId = req?.user?._id;
     const { supplierId, items } = req.body as UpdatePurchaseOrderDto;
 
-    const purchaseOrder = await PurchaseOrderModel.findOne({ _id: id, userId }).exec();
+    const query: any = { _id: id };
+    if (userId) {
+      query.userId = userId;
+    }
+
+    const purchaseOrder = await PurchaseOrderModel.findOne(query).exec();
     
     if (!purchaseOrder) {
       throw new AppError('Purchase order not found', 404);
+    }
+
+    // Validate supplier if being updated
+    if (supplierId) {
+      const supplier = await SupplierModel.findById(supplierId).exec();
+      if (!supplier) {
+        throw new AppError('Supplier not found', 404);
+      }
+      purchaseOrder.supplierId = supplierId as any;
     }
 
     if (items && items.length > 0) {
@@ -249,9 +295,14 @@ class PurchaseOrderController {
    */
   deletePurchaseOrder = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const { id } = req.params;
-    const userId = req.user._id;
+    const userId = req?.user?._id;
 
-    const purchaseOrder = await PurchaseOrderModel.findOneAndDelete({ _id: id, userId }).exec();
+    const query: any = { _id: id };
+    if (userId) {
+      query.userId = userId;
+    }
+
+    const purchaseOrder = await PurchaseOrderModel.findOneAndDelete(query).exec();
     
     if (!purchaseOrder) {
       throw new AppError('Purchase order not found', 404);

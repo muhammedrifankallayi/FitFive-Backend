@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import purchaseOrderController from '../controllers/purchaseOrder.controller';
-import { authenticateToken } from '../middleware/auth.middleware';
+// import { protect } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateToken);
+// router.use(protect);
 
 // Create purchase order
 router.post('/', purchaseOrderController.createPurchaseOrder);

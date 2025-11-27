@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import salesOrderController from '../controllers/salesOrder.controller';
-import { authenticateToken } from '../middleware/auth.middleware';
+import { protect } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(protect);
 
 // Sales order statistics (should be before :id route)
 router.get('/stats', salesOrderController.getSalesStats);

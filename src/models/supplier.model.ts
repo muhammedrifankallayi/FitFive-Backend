@@ -2,12 +2,12 @@ import mongoose, { Schema, Types } from "mongoose";
 
 export interface ISupplierModel {
     _id: Types.ObjectId;
-
     name: string;
     email: string;
     phone: string;
     address?: string;
-    notes   ?: string;
+    notes?: string;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -53,6 +53,10 @@ const supplierSchema = new Schema<ISupplierModel>({
         type: String,
         trim: true,
         maxlength: [1000, 'Notes cannot exceed 1000 characters']
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: true });
 

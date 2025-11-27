@@ -84,8 +84,8 @@ class ItemController {
     async (req: Request, res: Response, _next: NextFunction) => {
       const itemData: CreateItemDto = req.body;
 
-      if (!itemData.name || !itemData.description) {
-        throw new AppError('Name and description are required', 400);
+      if (!itemData.name) {
+        throw new AppError('Name is required', 400);
       }
 
       if (!itemData.categoryId) {

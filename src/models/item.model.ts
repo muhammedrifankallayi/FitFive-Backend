@@ -25,9 +25,7 @@ const itemSchema = new Schema<IItem>(
     },
     description: {
       type: String,
-      required: [true, 'Description is required'],
       trim: true,
-      minlength: [10, 'Description must be at least 10 characters'],
     },
     slug: {
       type: String,

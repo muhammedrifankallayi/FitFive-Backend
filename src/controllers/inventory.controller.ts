@@ -485,6 +485,65 @@ class InventoryController {
       res.status(200).json(response);
     }
   );
+
+  /**
+   * Get available inventory items (stock > 0) with pagination
+   * @route GET /api/inventory/available
+   */
+  getAvailableInventory = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const search = req.query.search as string;
+      const skip = (page - 1) * limit;
+
+      // Build query for available items
+      const query: any = {
+        stock: { $gt: 0 },
+        isActive: true
+      };
+
+      // Add search functionality
+      if (search) {
+        query.$or = [
+          { sku: { $regex: search, $options: 'i' } },
+          { barcode: { $regex: search, $options: 'i' } },
+          { 'item.name': { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      const [availableItems, total] = await Promise.all([
+        InventoryModel.find(query)
+          .populate({
+            path: 'item',
+            select: 'name description slug images categoryId'
+          })
+          .populate('size', 'name code')
+          .populate('color', 'name hex rgb')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+          .exec(),
+        InventoryModel.countDocuments(query)
+      ]);
+
+      const response: ApiResponse<IInventory[]> = {
+        success: true,
+        message: 'Available inventory items retrieved successfully',
+        data: availableItems as any,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      };
+
+      res.status(200).json(response);
+    }
+  );
 }
 
 export default new InventoryController();
+

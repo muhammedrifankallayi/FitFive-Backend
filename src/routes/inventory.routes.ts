@@ -181,11 +181,19 @@ const validateLowStockQuery = [
 
 /**
  * @route   GET /api/inventory/low-stock
- * @desc    Get low stock items
+ * @desc    Get inventory items with low stock
  * @access  Public
  * @query   threshold (default: 10)
  */
 router.get('/low-stock', validateLowStockQuery, inventoryController.getLowStock);
+
+/**
+ * @route   GET /api/inventory/available
+ * @desc    Get available inventory items (stock > 0)
+ * @access  Public
+ * @query   page, limit, search
+ */
+router.get('/available', validateQuery, inventoryController.getAvailableInventory);
 
 /**
  * @route   GET /api/inventory/item/:itemId

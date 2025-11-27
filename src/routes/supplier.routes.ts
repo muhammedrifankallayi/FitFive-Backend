@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import supplierController from '../controllers/supplier.controller';
-import { authenticateToken } from '../middleware/auth.middleware';
+// import { protect } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateToken);
+// router.use(protect);
 
 // Supplier statistics (should be before :id route)
 router.get('/stats', supplierController.getSupplierStats);

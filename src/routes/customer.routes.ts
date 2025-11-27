@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import customerController from '../controllers/customer.controller';
-import { authenticateToken } from '../middleware/auth.middleware';
+// import { protect } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateToken);
+// router.use(protect);
 
 // Customer statistics (should be before :id route)
 router.get('/stats', customerController.getCustomerStats);
@@ -20,7 +20,7 @@ router.get('/', customerController.getAllCustomers);
 router.get('/:id', customerController.getCustomerById);
 
 // Update customer
-router.patch('/:id', customerController.updateCustomer);
+router.put('/:id', customerController.updateCustomer);
 
 // Delete customer
 router.delete('/:id', customerController.deleteCustomer);

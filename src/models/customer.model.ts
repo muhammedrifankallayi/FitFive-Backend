@@ -6,7 +6,8 @@ export interface ICustomerModel {
     email: string;
     phone: string;
     address?: string;
-    notes   ?: string;
+    notes?: string;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -56,6 +57,10 @@ const customerSchema = new Schema({
         type: String,
         trim: true,
         maxlength: [1000, 'Notes cannot exceed 1000 characters']
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: true });
 

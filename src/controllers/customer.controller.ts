@@ -9,6 +9,7 @@ export interface CreateCustomerDto {
   phone: string;
   address?: string;
   notes?: string;
+  isActive?: boolean;
 }
 
 export interface UpdateCustomerDto {
@@ -17,6 +18,7 @@ export interface UpdateCustomerDto {
   phone?: string;
   address?: string;
   notes?: string;
+  isActive?: boolean;
 }
 
 class CustomerController {
@@ -43,7 +45,8 @@ class CustomerController {
       email: email.toLowerCase().trim(),
       phone: phone.trim(),
       address: address?.trim(),
-      notes: notes?.trim()
+      notes: notes?.trim(),
+      isActive: true
     });
 
     const response: ApiResponse<ICustomerModel> = {
@@ -63,6 +66,7 @@ class CustomerController {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
+    const isActive = req.query.isActive as string;
     const skip = (page - 1) * limit;
 
     // Build search query
@@ -73,6 +77,9 @@ class CustomerController {
         { email: { $regex: search, $options: 'i' } },
         { phone: { $regex: search, $options: 'i' } }
       ];
+    }
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true';
     }
 
     const [customers, total] = await Promise.all([
@@ -202,7 +209,7 @@ class CustomerController {
    * Get customer statistics
    * @route GET /api/customers/stats
    */
-  getCustomerStats = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
+  getCustomerStats = asyncHandler(async (_req: Request, res: Response, _next: NextFunction) => {
     const totalCustomers = await CustomerModel.countDocuments().exec();
     
     // Get customers created in the last 30 days

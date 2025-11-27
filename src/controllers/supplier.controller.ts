@@ -9,6 +9,7 @@ export interface CreateSupplierDto {
   phone: string;
   address?: string;
   notes?: string;
+  isActive?: boolean;
 }
 
 export interface UpdateSupplierDto {
@@ -17,6 +18,7 @@ export interface UpdateSupplierDto {
   phone?: string;
   address?: string;
   notes?: string;
+  isActive?: boolean;
 }
 
 class SupplierController {
@@ -43,7 +45,8 @@ class SupplierController {
       email: email.toLowerCase().trim(),
       phone: phone.trim(),
       address: address?.trim(),
-      notes: notes?.trim()
+      notes: notes?.trim(),
+      isActive: true
     });
 
     const response: ApiResponse<ISupplierModel> = {
@@ -63,6 +66,7 @@ class SupplierController {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
+    const isActive = req.query.isActive as string;
     const skip = (page - 1) * limit;
 
     // Build search query
@@ -73,6 +77,9 @@ class SupplierController {
         { email: { $regex: search, $options: 'i' } },
         { phone: { $regex: search, $options: 'i' } }
       ];
+    }
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true';
     }
 
     const [suppliers, total] = await Promise.all([
@@ -213,7 +220,7 @@ class SupplierController {
    * Get supplier statistics
    * @route GET /api/suppliers/stats
    */
-  getSupplierStats = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
+  getSupplierStats = asyncHandler(async (_req: Request, res: Response, _next: NextFunction) => {
     const totalSuppliers = await SupplierModel.countDocuments().exec();
     
     // Get suppliers created in the last 30 days
