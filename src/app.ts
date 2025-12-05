@@ -34,7 +34,7 @@ class App {
     // CORS middleware - must be before other middlewares
     this.app.use(
       cors({
-        origin: config.cors.origin,
+        origin:  '*', //config.cors.origin,
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

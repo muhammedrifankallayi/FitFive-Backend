@@ -16,6 +16,7 @@ import customerRoutes from './customer.routes';
 import supplierRoutes from './supplier.routes';
 import publicRoutes from './public.apis';
 import shiprocketRoutes from '../shiprocket/routes';
+import cashfreeRoutes from './cashfree.routes';
 
 const router = Router();
 
@@ -78,5 +79,8 @@ router.use('/suppliers', supplierRoutes);
 
 // Shiprocket routes
 router.use('/shiprocket', shiprocketRoutes);
+
+// CashFree payment routes
+router.use('/cashfree', cashfreeRoutes);
 
 export default router;

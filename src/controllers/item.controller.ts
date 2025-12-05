@@ -103,7 +103,10 @@ class ItemController {
         description: itemData.description,
         slug,
         categoryId: itemData.categoryId,
-        image: itemData.image,
+        images: itemData.images || [],
+        price: itemData.price,
+        compareAtPrice: itemData.compareAtPrice || null,
+        costPrice: itemData.costPrice || null,
         tags: itemData.tags || [],
         attributes: itemData.attributes || {},
         isActive: itemData.isActive !== undefined ? itemData.isActive : true,
@@ -184,6 +187,219 @@ class ItemController {
         success: true,
         message: `Found ${items.length} items in this category`,
         data: items as any,
+      };
+
+      res.status(200).json(response);
+    }
+  );
+
+  /**
+   * Add review to item
+   * @route POST /api/items/:id/reviews
+   */
+  addReview = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      const { id } = req.params;
+      const { rating, comment } = req.body;
+      const userId = (req as any).user?._id;
+
+      if (!userId) {
+        throw new AppError('User authentication required', 401);
+      }
+
+      // Validate rating
+      if (!rating || rating < 1 || rating > 5) {
+        throw new AppError('Rating must be between 1 and 5', 400);
+      }
+
+      // Find the item
+      const item = await ItemModel.findById(id).exec();
+      if (!item) {
+        throw new AppError('Item not found', 404);
+      }
+
+      // Check if user already reviewed this item
+      const existingReview = item.reviews?.find(
+        (review: any) => review.userId.toString() === userId.toString()
+      );
+
+      if (existingReview) {
+        throw new AppError('You have already reviewed this item', 409);
+      }
+
+      // Add review
+      if (!item.reviews) {
+        item.reviews = [];
+      }
+
+      item.reviews.push({
+        userId,
+        rating,
+        comment: comment?.trim() || undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      await item.save();
+
+      // Populate userId in review for response
+      const populatedItem = await ItemModel.findById(id)
+        .populate({
+          path: 'reviews.userId',
+          select: 'name email avatar',
+        })
+        .lean()
+        .exec();
+
+      const response: ApiResponse<IItem> = {
+        success: true,
+        message: 'Review added successfully',
+        data: populatedItem as any,
+      };
+
+      res.status(201).json(response);
+    }
+  );
+
+  /**
+   * Get reviews for item
+   * @route GET /api/items/:id/reviews
+   */
+  getReviews = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      const { id } = req.params;
+
+      const item = await ItemModel.findById(id)
+        .populate({
+          path: 'reviews.userId',
+          select: 'name email avatar',
+        })
+        .lean()
+        .exec();
+
+      if (!item) {
+        throw new AppError('Item not found', 404);
+      }
+
+      // Calculate average rating
+      const reviews = item.reviews || [];
+      const averageRating = reviews.length > 0
+        ? (reviews.reduce((sum: number, review: any) => sum + review.rating, 0) / reviews.length).toFixed(2)
+        : 0;
+
+      const response: ApiResponse<any> = {
+        success: true,
+        message: 'Reviews retrieved successfully',
+        data: {
+          reviews,
+          totalReviews: reviews.length,
+          averageRating: parseFloat(averageRating as string),
+        },
+      };
+
+      res.status(200).json(response);
+    }
+  );
+
+  /**
+   * Update review for item
+   * @route PUT /api/items/:id/reviews/:reviewId
+   */
+  updateReview = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      const { id, reviewId } = req.params;
+      const { rating, comment } = req.body;
+      const userId = (req as any).user?._id;
+
+      if (!userId) {
+        throw new AppError('User authentication required', 401);
+      }
+
+      // Validate rating
+      if (rating && (rating < 1 || rating > 5)) {
+        throw new AppError('Rating must be between 1 and 5', 400);
+      }
+
+      const item = await ItemModel.findById(id).exec();
+      if (!item) {
+        throw new AppError('Item not found', 404);
+      }
+
+      // Find the review
+      const review = item.reviews?.find((r: any) => r._id?.toString() === reviewId);
+      if (!review) {
+        throw new AppError('Review not found', 404);
+      }
+
+      // Check if user owns the review
+      if (review.userId.toString() !== userId.toString()) {
+        throw new AppError('You can only update your own reviews', 403);
+      }
+
+      // Update review
+      if (rating) review.rating = rating;
+      if (comment !== undefined) review.comment = comment?.trim() || undefined;
+      review.updatedAt = new Date();
+
+      await item.save();
+
+      const populatedItem = await ItemModel.findById(id)
+        .populate({
+          path: 'reviews.userId',
+          select: 'name email avatar',
+        })
+        .lean()
+        .exec();
+
+      const response: ApiResponse<IItem> = {
+        success: true,
+        message: 'Review updated successfully',
+        data: populatedItem as any,
+      };
+
+      res.status(200).json(response);
+    }
+  );
+
+  /**
+   * Delete review for item
+   * @route DELETE /api/items/:id/reviews/:reviewId
+   */
+  deleteReview = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      const { id, reviewId } = req.params;
+      const userId = (req as any).user?._id;
+
+      if (!userId) {
+        throw new AppError('User authentication required', 401);
+      }
+
+      const item = await ItemModel.findById(id).exec();
+      if (!item) {
+        throw new AppError('Item not found', 404);
+      }
+
+      // Find the review
+      const reviewIndex = item.reviews?.findIndex((r: any) => r._id?.toString() === reviewId);
+      if (reviewIndex === -1 || reviewIndex === undefined) {
+        throw new AppError('Review not found', 404);
+      }
+
+      const review = item.reviews![reviewIndex];
+
+      // Check if user owns the review
+      if (review.userId.toString() !== userId.toString()) {
+        throw new AppError('You can only delete your own reviews', 403);
+      }
+
+      // Remove review
+      item.reviews!.splice(reviewIndex, 1);
+      await item.save();
+
+      const response: ApiResponse = {
+        success: true,
+        message: 'Review deleted successfully',
+        data: null,
       };
 
       res.status(200).json(response);

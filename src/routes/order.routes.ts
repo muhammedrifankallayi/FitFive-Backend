@@ -20,9 +20,11 @@ const validateCreateOrder = [
     .isInt({ min: 1 })
     .withMessage('Quantity must be a positive integer'),
   body('paymentDetails')
+    .optional()
     .isObject()
-    .withMessage('Payment details are required'),
+    .withMessage('Payment details must be an object'),
   body('paymentDetails.method')
+    .optional()
     .isIn(['cash', 'card', 'upi', 'netbanking', 'wallet'])
     .withMessage('Payment method must be one of: cash, card, upi, netbanking, wallet'),
   body('paymentDetails.transactionId')
@@ -34,56 +36,15 @@ const validateCreateOrder = [
     .optional()
     .isIn(['standard', 'express', 'overnight', 'pickup'])
     .withMessage('Delivery type must be one of: standard, express, overnight, pickup'),
-  body('shippingAddress')
-    .isObject()
-    .withMessage('Shipping address is required'),
-  body('shippingAddress.name')
-    .trim()
+  body('shippingAddressId')
     .notEmpty()
-    .withMessage('Shipping address name is required')
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be between 2 and 100 characters'),
-  body('shippingAddress.phone')
-    .trim()
-    .notEmpty()
-    .withMessage('Phone number is required')
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage('Please provide a valid 10-digit Indian phone number'),
-  body('shippingAddress.email')
+    .withMessage('Shipping address ID is required')
+    .isMongoId()
+    .withMessage('Shipping address ID must be a valid MongoDB ID'),
+  body('billingAddressId')
     .optional()
-    .trim()
-    .isEmail()
-    .withMessage('Please provide a valid email')
-    .normalizeEmail(),
-  body('shippingAddress.address')
-    .trim()
-    .notEmpty()
-    .withMessage('Address is required')
-    .isLength({ min: 10, max: 500 })
-    .withMessage('Address must be between 10 and 500 characters'),
-  body('shippingAddress.city')
-    .trim()
-    .notEmpty()
-    .withMessage('City is required')
-    .isLength({ max: 100 })
-    .withMessage('City cannot exceed 100 characters'),
-  body('shippingAddress.state')
-    .trim()
-    .notEmpty()
-    .withMessage('State is required')
-    .isLength({ max: 100 })
-    .withMessage('State cannot exceed 100 characters'),
-  body('shippingAddress.country')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Country cannot exceed 100 characters'),
-  body('shippingAddress.pincode')
-    .trim()
-    .notEmpty()
-    .withMessage('Pincode is required')
-    .matches(/^[1-9][0-9]{5}$/)
-    .withMessage('Please provide a valid 6-digit pincode'),
+    .isMongoId()
+    .withMessage('Billing address ID must be a valid MongoDB ID'),
   body('discount')
     .optional()
     .isFloat({ min: 0 })
@@ -192,8 +153,11 @@ const validateId = [
  * @route   POST /api/orders
  * @desc    Create a new order
  * @access  Private
- * @body    { items, paymentDetails, deliveryType, shippingAddress, billingAddress?, discount?, notes? }
+ * @body    { items, paymentDetails, deliveryType, shippingAddressId, billingAddressId?, discount?, notes? }
  */
+
+router.get('/every', protect, restrictTo('admin'), orderController.getEveryOrder);
+
 router.post('/', protect, validateCreateOrder, orderController.createOrder);
 
 /**
@@ -241,5 +205,8 @@ router.put('/:id/status', protect, restrictTo('admin'), validateUpdateOrderStatu
  * @body    { paymentStatus, transactionId?, paidAt? }
  */
 router.put('/:id/payment', protect, validateUpdatePaymentStatus, orderController.updatePaymentStatus);
+
+
+
 
 export default router;

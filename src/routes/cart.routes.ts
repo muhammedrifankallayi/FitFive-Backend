@@ -17,6 +17,9 @@ router.get('/count', cartController.getCartCount);
 // Add item to cart
 router.post('/add', cartController.addToCart);
 
+// Add multiple items to cart (bulk)
+router.post('/bulk-add', cartController.bulkAddToCart);
+
 // Update cart item quantity
 router.patch('/items/:inventoryId', validateId, cartController.updateCartItem);
 

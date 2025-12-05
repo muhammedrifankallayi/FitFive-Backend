@@ -9,6 +9,10 @@ export interface AddToCartDto {
   qty: number;
 }
 
+export interface BulkAddToCartDto {
+  items: Array<{ inventoryId: string; qty: number }>;
+}
+
 export interface UpdateCartItemDto {
   qty: number;
 }
@@ -70,7 +74,7 @@ class CartController {
    * @route POST /api/cart/add
    */
   addToCart = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
-    const userId = req.user._id;
+    const userId = req.user?._id;
     const { inventoryId, qty } = req.body as AddToCartDto;
 
     if (!inventoryId || !qty) {
@@ -148,6 +152,119 @@ class CartController {
     const response: ApiResponse<ICart> = {
       success: true,
       message: 'Item added to cart successfully',
+      data: populatedCart as any,
+    };
+
+    res.status(200).json(response);
+  });
+
+  /**
+   * Add multiple items to cart (bulk)
+   * @route POST /api/cart/bulk-add
+   */
+  bulkAddToCart = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
+    const userId = req.user?._id;
+    const { items } = req.body as BulkAddToCartDto;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw new AppError('Items array is required and must not be empty', 400);
+    }
+
+    // Validate each item
+    for (const item of items) {
+      if (!item.inventoryId || !item.qty) {
+        throw new AppError('Each item must have inventoryId and qty', 400);
+      }
+
+      if (item.qty < 1) {
+        throw new AppError('Quantity must be at least 1 for all items', 400);
+      }
+    }
+
+    // Check inventory availability for all items
+    const inventoryChecks = await Promise.all(
+      items.map(item => InventoryModel.findById(item.inventoryId).exec())
+    );
+
+    for (let i = 0; i < inventoryChecks.length; i++) {
+      const inventory = inventoryChecks[i];
+      const item = items[i];
+
+      if (!inventory) {
+        throw new AppError(`Inventory item not found for ID: ${item.inventoryId}`, 404);
+      }
+
+      if (!inventory.isActive) {
+        throw new AppError(`Item with ID ${item.inventoryId} is not available`, 400);
+      }
+
+      if (inventory.stock < item.qty) {
+        throw new AppError(
+          `Only ${inventory.stock} items available in stock for ID: ${item.inventoryId}`,
+          400
+        );
+      }
+    }
+
+    // Find or create cart
+    let cart = await CartModel.findOne({ userId }).exec();
+    if (!cart) {
+      cart = new CartModel({
+        userId,
+        items: [],
+        totalAmount: 0
+      });
+    }
+
+    // Add or update items in cart
+    for (const item of items) {
+      const existingItemIndex = cart.items.findIndex(
+        cartItem => cartItem.inventoryId.toString() === item.inventoryId
+      );
+
+      if (existingItemIndex > -1) {
+        // Update quantity if item exists
+        const newQty = cart.items[existingItemIndex].qty + item.qty;
+        const inventory = inventoryChecks[items.indexOf(item)];
+
+        if (!inventory || inventory.stock < newQty) {
+          throw new AppError(
+            `Only ${inventory?.stock || 0} items available in stock for ID: ${item.inventoryId}`,
+            400
+          );
+        }
+
+        cart.items[existingItemIndex].qty = newQty;
+      } else {
+        // Add new item to cart
+        cart.items.push({
+          inventoryId: item.inventoryId as any,
+          qty: item.qty
+        });
+      }
+    }
+
+    // Recalculate total amount
+    cart.totalAmount = await this.calculateCartTotal(cart.items);
+    await cart.save();
+
+    // Populate cart for response
+    const populatedCart = await CartModel.findById(cart._id)
+      .populate({
+        path: 'items.inventoryId',
+        select: 'price compareAtPrice size color item stock sku isActive',
+        populate: [
+          { path: 'item', select: 'name description slug images' },
+          { path: 'size', select: 'name code' },
+          { path: 'color', select: 'name hex rgb' }
+        ]
+      })
+      .lean()
+      .exec();
+
+    const response: ApiResponse<ICart> = {
+      success: true,
+      message: `${items.length} item(s) added to cart successfully`,
       data: populatedCart as any,
     };
 

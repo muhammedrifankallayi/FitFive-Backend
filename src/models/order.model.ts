@@ -18,36 +18,17 @@ export interface IPaymentDetails {
 // Order interface
 export interface IOrder extends Document {
   _id: Types.ObjectId;
+  orderNo: string;
   userId: Types.ObjectId;
   items: IOrderItem[];
-  paymentDetails: IPaymentDetails;
+  paymentDetails?: IPaymentDetails;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
   totalAmount: number;
   discount: number;
   deliveryType: 'standard' | 'express' | 'overnight' | 'pickup';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
-  shippingAddress: {
-    name: string;
-    phone: string;
-    email?: string;
-    address: string;
-    address2?: string;
-    city: string;
-    state: string;
-    country: string;
-    pincode: string;
-  };
-  billingAddress?: {
-    name: string;
-    phone: string;
-    email?: string;
-    address: string;
-    address2?: string;
-    city: string;
-    state: string;
-    country: string;
-    pincode: string;
-  };
+  shippingAddressId: Types.ObjectId;
+  billingAddressId?: Types.ObjectId;
   orderDate: Date;
   expectedDeliveryDate?: Date;
   actualDeliveryDate?: Date;
@@ -100,67 +81,14 @@ const PaymentDetailsSchema = new Schema<IPaymentDetails>({
   },
 }, { _id: false });
 
-// Address schema
-const AddressSchema = new Schema({
-  name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true,
-    maxlength: [100, 'Name cannot exceed 100 characters'],
-  },
-  phone: {
-    type: String,
-    required: [true, 'Phone number is required'],
-    trim: true,
-    match: [/^[6-9]\d{9}$/, 'Please provide a valid 10-digit Indian phone number'],
-  },
-  email: {
-    type: String,
-    trim: true,
-    lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
-  },
-  address: {
-    type: String,
-    required: [true, 'Address is required'],
-    trim: true,
-    minlength: [10, 'Address must be at least 10 characters'],
-    maxlength: [500, 'Address cannot exceed 500 characters'],
-  },
-  address2: {
-    type: String,
-    trim: true,
-    maxlength: [500, 'Address 2 cannot exceed 500 characters'],
-  },
-  city: {
-    type: String,
-    required: [true, 'City is required'],
-    trim: true,
-    maxlength: [100, 'City cannot exceed 100 characters'],
-  },
-  state: {
-    type: String,
-    required: [true, 'State is required'],
-    trim: true,
-    maxlength: [100, 'State cannot exceed 100 characters'],
-  },
-  country: {
-    type: String,
-    required: [true, 'Country is required'],
-    trim: true,
-    default: 'India',
-    maxlength: [100, 'Country cannot exceed 100 characters'],
-  },
-  pincode: {
-    type: String,
-    required: [true, 'Pincode is required'],
-    trim: true,
-    match: [/^[1-9][0-9]{5}$/, 'Please provide a valid 6-digit pincode'],
-  },
-}, { _id: false });
-
 // Main Order schema
 const OrderSchema = new Schema<IOrder>({
+  orderNo: {
+    type: String,
+    unique: true,
+    index: true,
+    required: [true, 'Order number is required'],
+  },
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -178,7 +106,9 @@ const OrderSchema = new Schema<IOrder>({
   },
   paymentDetails: {
     type: PaymentDetailsSchema,
-    required: [true, 'Payment details are required'],
+    default: {
+      method: 'cash'
+    },
   },
   status: {
     type: String,
@@ -217,12 +147,14 @@ const OrderSchema = new Schema<IOrder>({
     },
     default: 'pending',
   },
-  shippingAddress: {
-    type: AddressSchema,
+  shippingAddressId: {
+    type: Schema.Types.ObjectId,
+    ref: 'ShippingAddress',
     required: [true, 'Shipping address is required'],
   },
-  billingAddress: {
-    type: AddressSchema,
+  billingAddressId: {
+    type: Schema.Types.ObjectId,
+    ref: 'ShippingAddress',
   },
   orderDate: {
     type: Date,
@@ -268,6 +200,34 @@ OrderSchema.index({ 'items.inventoryId': 1 });
 // Virtual for final amount after discount
 OrderSchema.virtual('finalAmount').get(function() {
   return this.totalAmount - this.discount;
+});
+
+// Pre-save middleware to generate orderNo
+OrderSchema.pre('save', async function(next) {
+  if (this.isNew && !this.orderNo) {
+    try {
+      // Get the count of existing orders to generate unique orderNo
+      const Order = this.constructor as any;
+      const lastOrder = await Order.findOne({}, { orderNo: 1 }, { sort: { _id: -1 } });
+      
+      let orderNumber = 1;
+      if (lastOrder && lastOrder.orderNo) {
+        // Extract number from orderNo (e.g., "ORD000001" -> 1)
+        const lastNumber = parseInt(lastOrder.orderNo.replace('ORD', ''));
+        if (!isNaN(lastNumber)) {
+          orderNumber = lastNumber + 1;
+        }
+      }
+      
+      // Format orderNo with leading zeros (ORD000001, ORD000002, etc.)
+      this.orderNo = `ORD${String(orderNumber).padStart(6, '0')}`;
+    } catch (err: any) {
+      // If there's an error in generating orderNo, let it fail at schema validation
+      next(err);
+      return;
+    }
+  }
+  next();
 });
 
 // Pre-save middleware to set expected delivery date based on delivery type

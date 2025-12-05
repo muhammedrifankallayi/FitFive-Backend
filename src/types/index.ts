@@ -122,7 +122,10 @@ export interface CreateItemDto {
   description: string;
   slug?: string;
   categoryId: string;
-  image?: string;
+  images?: string[];
+  price: number;
+  compareAtPrice?: number | null;
+  costPrice?: number | null;
   tags?: string[];
   attributes?: Record<string, any>;
   isActive?: boolean;
@@ -134,7 +137,10 @@ export interface UpdateItemDto {
   description?: string;
   slug?: string;
   categoryId?: string;
-  image?: string;
+  images?: string[];
+  price?: number;
+  compareAtPrice?: number | null;
+  costPrice?: number | null;
   tags?: string[];
   attributes?: Record<string, any>;
   isActive?: boolean;

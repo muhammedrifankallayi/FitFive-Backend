@@ -37,14 +37,12 @@ class ShippingAddressController {
     const response: ApiResponse = {
       success: true,
       message: `Retrieved ${data.length} shipping addresses`,
-      data: {
-        items: data,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
 
@@ -87,7 +85,11 @@ class ShippingAddressController {
     const existing = await ShippingAddressModel.findById(id);
     if (!existing) throw new AppError('Shipping address not found', 404);
     await ShippingAddressModel.findByIdAndDelete(id);
-    const response: ApiResponse = { success: true, message: 'Shipping address deleted' };
+    const response: ApiResponse = { 
+      success: true, 
+      message: 'Shipping address deleted',
+      data: null
+    };
     res.status(200).json(response);
   });
 }

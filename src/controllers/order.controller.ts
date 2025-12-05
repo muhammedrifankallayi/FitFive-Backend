@@ -18,8 +18,8 @@ class OrderController {
         items,
         paymentDetails,
         deliveryType,
-        shippingAddress,
-        billingAddress,
+        shippingAddressId,
+        billingAddressId,
         notes,
         discount = 0,
       } = req.body;
@@ -94,16 +94,30 @@ class OrderController {
         throw new AppError('Invalid discount amount', 400);
       }
 
+      // Validate shipping address ID
+      if (!shippingAddressId || !Types.ObjectId.isValid(shippingAddressId)) {
+        throw new AppError('Valid shipping address ID is required', 400);
+      }
+
+      // Set default payment details if not provided
+      const finalPaymentDetails = paymentDetails || {
+        method: 'cash',
+        paymentGateway: undefined,
+        transactionId: undefined,
+        paidAt: undefined,
+        failureReason: undefined
+      };
+
       // Create the order
       const newOrder = new Order({
         userId: new Types.ObjectId(userId),
         items: validatedItems,
-        paymentDetails,
+        paymentDetails: finalPaymentDetails,
         totalAmount,
         discount,
         deliveryType: deliveryType || 'standard',
-        shippingAddress,
-        billingAddress: billingAddress || shippingAddress,
+        shippingAddressId: new Types.ObjectId(shippingAddressId),
+        billingAddressId: billingAddressId ? new Types.ObjectId(billingAddressId) : new Types.ObjectId(shippingAddressId),
         notes,
       });
 
@@ -123,6 +137,14 @@ class OrderController {
         .populate({
           path: 'userId',
           select: 'name email phone',
+        })
+        .populate({
+          path: 'shippingAddressId',
+          select: 'fullName phone email addressLine1 addressLine2 city state pinCode country',
+        })
+        .populate({
+          path: 'billingAddressId',
+          select: 'fullName phone email addressLine1 addressLine2 city state pinCode country',
         })
         .populate({
           path: 'items.inventoryId',
@@ -277,9 +299,17 @@ class OrderController {
             select: 'name email phone',
           })
           .populate({
+            path: 'shippingAddressId',
+            select: 'fullName phone email addressLine1 addressLine2 city state pinCode country',
+          })
+          .populate({
+            path: 'billingAddressId',
+            select: 'fullName phone email addressLine1 addressLine2 city state pinCode country',
+          })
+          .populate({
             path: 'items.inventoryId',
             populate: [
-              { path: 'item', select: 'name description image' },
+              { path: 'item', select: 'name description images' },
               { path: 'size', select: 'name code' },
               { path: 'color', select: 'name code' },
             ],
@@ -328,6 +358,14 @@ class OrderController {
         .populate({
           path: 'userId',
           select: 'name email phone',
+        })
+        .populate({
+          path: 'shippingAddressId',
+          select: 'fullName phone email addressLine1 addressLine2 city state pinCode country',
+        })
+        .populate({
+          path: 'billingAddressId',
+          select: 'fullName phone email addressLine1 addressLine2 city state pinCode country',
         })
         .populate({
           path: 'items.inventoryId',
@@ -452,6 +490,13 @@ class OrderController {
       // Update payment details
       order.paymentStatus = paymentStatus;
 
+      // Initialize paymentDetails if not exists
+      if (!order.paymentDetails) {
+        order.paymentDetails = {
+          method: 'cash',
+        };
+      }
+
       if (transactionId) {
         order.paymentDetails.transactionId = transactionId;
       }
@@ -498,6 +543,38 @@ class OrderController {
       res.status(200).json(response);
     }
   );
+
+  getEveryOrder = asyncHandler(
+    async (_req: Request, res: Response, _next: NextFunction) => {
+            console.log("HERE");  
+      const orders = await Order.find()
+
+      
+        .populate({
+          path: 'userId',
+          select: 'name email phone',
+        })
+        .populate({
+          path: 'items.inventoryId',
+          populate: [
+            { path: 'item', select: 'name description images' },
+            { path: 'size', select: 'name code' },
+            { path: 'color', select: 'name code' },
+          ],
+        }).populate("shippingAddressId")
+        .lean();
+
+      const response: ApiResponse<IOrder[]> = {
+        success: true,
+        message: `Retrieved ${orders.length} orders`,
+        data: orders as any[],
+      };
+
+      res.status(200).json(response);
+    }
+  );
+
+
 }
 
 export default new OrderController();

@@ -39,7 +39,11 @@ export const protect = async (
 
     try {
       // Verify token
+      console.log("HERE");
+      
       const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
+      console.log('decoded',decoded);
+      
 
       // Get user from database
       const user = await User.findById(decoded.id).select('-password');
@@ -77,6 +81,8 @@ export const restrictTo = (...roles: string[]) => {
     if (!req.user) {
       return next(new AppError('User not authenticated', 401));
     }
+    console.log(req.user,"UUUSTT");
+    
 
     if (!roles.includes(req.user.role)) {
       return next(
