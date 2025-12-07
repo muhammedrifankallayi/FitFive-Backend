@@ -25,8 +25,8 @@ const validateCreateOrder = [
     .withMessage('Payment details must be an object'),
   body('paymentDetails.method')
     .optional()
-    .isIn(['cash', 'card', 'upi', 'netbanking', 'wallet'])
-    .withMessage('Payment method must be one of: cash, card, upi, netbanking, wallet'),
+    .isIn(['cash', 'card', 'upi', 'netbanking', 'wallet', 'cod'])
+    .withMessage('Payment method must be one of: cash, card, upi, netbanking, wallet, cod'),
   body('paymentDetails.transactionId')
     .optional()
     .isString()

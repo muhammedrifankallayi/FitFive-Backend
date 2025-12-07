@@ -8,7 +8,7 @@ export interface IOrderItem {
 
 // Payment details interface
 export interface IPaymentDetails {
-  method: 'cash' | 'card' | 'upi' | 'netbanking' | 'wallet';
+  method: 'cash' | 'card' | 'upi' | 'netbanking' | 'wallet' | 'cod';
   transactionId?: string;
   paymentGateway?: string;
   paidAt?: Date;
@@ -60,8 +60,8 @@ const PaymentDetailsSchema = new Schema<IPaymentDetails>({
     type: String,
     required: [true, 'Payment method is required'],
     enum: {
-      values: ['cash', 'card', 'upi', 'netbanking', 'wallet'],
-      message: 'Payment method must be one of: cash, card, upi, netbanking, wallet',
+      values: ['cash', 'card', 'upi', 'netbanking', 'wallet', 'cod'],
+      message: 'Payment method must be one of: cash, card, upi, netbanking, wallet, cod',
     },
   },
   transactionId: {

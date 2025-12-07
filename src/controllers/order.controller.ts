@@ -114,6 +114,7 @@ class OrderController {
         items: validatedItems,
         paymentDetails: finalPaymentDetails,
         totalAmount,
+        orderNo:'ORD56TST',
         discount,
         deliveryType: deliveryType || 'standard',
         shippingAddressId: new Types.ObjectId(shippingAddressId),
