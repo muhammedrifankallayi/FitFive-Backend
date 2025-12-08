@@ -23,6 +23,11 @@ interface Config {
     allowedFileTypes: string[];
     uploadPath: string;
   };
+  cloudinary: {
+    cloudName: string;
+    apiKey: string;
+    apiSecret: string;
+  };
   cors: {
     origin: string | string[];
   };
@@ -55,9 +60,14 @@ const config: Config = {
       : ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'],
     uploadPath: 'uploads/',
   },
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
+  },
   cors: {
-    origin: process.env.CORS_ORIGIN === '*' 
-      ? '*' 
+    origin: process.env.CORS_ORIGIN === '*'
+      ? '*'
       : process.env.CORS_ORIGIN?.split(',') || '*',
   },
   rateLimit: {

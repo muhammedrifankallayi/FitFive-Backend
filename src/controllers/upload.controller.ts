@@ -1,9 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import path from 'path';
-import fs from 'fs';
 import { ApiResponse, UploadedFileInfo } from '../types';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
-import config from '../config';
+import { cloudinary } from '../middleware/upload.middleware';
+
+// Extended file type for Cloudinary uploads
+interface CloudinaryFile extends Express.Multer.File {
+  path: string; // Cloudinary URL
+  filename: string; // Public ID
+}
 
 class UploadController {
   /**
@@ -16,16 +20,16 @@ class UploadController {
         throw new AppError('No files uploaded', 400);
       }
 
-      const uploadedFiles: UploadedFileInfo[] = req.files.map((file: Express.Multer.File) => ({
+      const uploadedFiles: UploadedFileInfo[] = (req.files as CloudinaryFile[]).map((file) => ({
         fieldname: file.fieldname,
         originalname: file.originalname,
-        encoding: file.encoding,  
+        encoding: file.encoding,
         mimetype: file.mimetype,
-        destination: file.destination,
-        filename: file.filename,
-        path: file.path,
+        destination: 'cloudinary',
+        filename: file.filename, // Cloudinary public_id
+        path: file.path, // Cloudinary URL
         size: file.size,
-        url: `/uploads/${file.filename}`,
+        url: file.path, // Cloudinary secure URL
       }));
 
       const response: ApiResponse<UploadedFileInfo[]> = {
@@ -48,16 +52,18 @@ class UploadController {
         throw new AppError('No file uploaded', 400);
       }
 
+      const file = req.file as CloudinaryFile;
+
       const uploadedFile: UploadedFileInfo = {
-        fieldname: req.file.fieldname,
-        originalname: req.file.originalname,
-        encoding: req.file.encoding,
-        mimetype: req.file.mimetype,
-        destination: req.file.destination,
-        filename: req.file.filename,
-        path: req.file.path,
-        size: req.file.size,
-        url: `/uploads/${req.file.filename}`,
+        fieldname: file.fieldname,
+        originalname: file.originalname,
+        encoding: file.encoding,
+        mimetype: file.mimetype,
+        destination: 'cloudinary',
+        filename: file.filename, // Cloudinary public_id
+        path: file.path, // Cloudinary URL
+        size: file.size,
+        url: file.path, // Cloudinary secure URL
       };
 
       const response: ApiResponse<UploadedFileInfo> = {
@@ -71,49 +77,48 @@ class UploadController {
   );
 
   /**
-   * Get all uploaded files
+   * Get all uploaded files from Cloudinary
    * @route GET /api/upload/files
    */
   getFiles = asyncHandler(
     async (_req: Request, res: Response, _next: NextFunction) => {
-      const uploadDir = path.join(process.cwd(), config.upload.uploadPath);
+      try {
+        const result = await cloudinary.api.resources({
+          type: 'upload',
+          prefix: 'fitfive/',
+          max_results: 100,
+        });
 
-      if (!fs.existsSync(uploadDir)) {
+        const fileList = result.resources.map((resource: any) => ({
+          filename: resource.public_id,
+          size: resource.bytes,
+          url: resource.secure_url,
+          createdAt: resource.created_at,
+          format: resource.format,
+          width: resource.width,
+          height: resource.height,
+        }));
+
+        const response: ApiResponse = {
+          success: true,
+          message: `Found ${fileList.length} file(s)`,
+          data: fileList,
+        };
+
+        res.status(200).json(response);
+      } catch (error) {
         const response: ApiResponse<[]> = {
           success: true,
           message: 'No files found',
           data: [],
         };
         res.status(200).json(response);
-        return;
       }
-
-      const files = fs.readdirSync(uploadDir);
-      const fileList = files
-        .filter((file: string) => file !== '.gitkeep')
-        .map((file: string) => {
-          const filePath = path.join(uploadDir, file);
-          const stats = fs.statSync(filePath);
-          return {
-            filename: file,
-            size: stats.size,
-            url: `/uploads/${file}`,
-            createdAt: stats.birthtime,
-          };
-        });
-
-      const response: ApiResponse = {
-        success: true,
-        message: `Found ${fileList.length} file(s)`,
-        data: fileList,
-      };
-
-      res.status(200).json(response);
     }
   );
 
   /**
-   * Delete a file
+   * Delete a file from Cloudinary
    * @route DELETE /api/upload/file/:filename
    */
   deleteFile = asyncHandler(
@@ -121,20 +126,17 @@ class UploadController {
       const { filename } = req.params;
 
       if (!filename) {
-        throw new AppError('Filename is required', 400);
+        throw new AppError('Filename (public_id) is required', 400);
       }
 
-      const filePath = path.join(
-        process.cwd(),
-        config.upload.uploadPath,
-        filename
-      );
+      // Decode the filename in case it contains URL-encoded characters
+      const publicId = decodeURIComponent(filename);
 
-      if (!fs.existsSync(filePath)) {
-        throw new AppError('File not found', 404);
+      const result = await cloudinary.uploader.destroy(publicId);
+
+      if (result.result !== 'ok') {
+        throw new AppError('File not found or could not be deleted', 404);
       }
-
-      fs.unlinkSync(filePath);
 
       const response: ApiResponse = {
         success: true,
