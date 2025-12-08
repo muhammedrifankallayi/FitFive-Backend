@@ -34,7 +34,7 @@ class App {
     // CORS middleware - must be before other middlewares
     this.app.use(
       cors({
-        origin:  '*', //config.cors.origin,
+        origin: '*', //config.cors.origin,
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -47,8 +47,8 @@ class App {
     this.app.use(compression());
 
     // Body parsing middleware
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(express.json({ limit: '50mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
     // Logging middleware
     if (config.server.nodeEnv === 'development') {
