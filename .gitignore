@@ -9,9 +9,9 @@ build/
 *.tsbuildinfo
 
 # Environment variables
-# .env
-# .env.local
-# .env.*.local
+.env
+.env.local
+.env.*.local
 
 # Logs
 logs/
@@ -38,4 +38,3 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
-.env
