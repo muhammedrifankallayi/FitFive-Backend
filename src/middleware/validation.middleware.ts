@@ -310,9 +310,7 @@ export const validateCreateShippingAddress = [
   body('phone')
     .trim()
     .notEmpty()
-    .withMessage('Phone is required')
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage('Phone must be a valid 10-digit number'),
+    .withMessage('Phone is required'),
   body('email')
     .optional()
     .trim()
@@ -358,9 +356,7 @@ export const validateUpdateShippingAddress = [
     .withMessage('Full name must be between 2 and 100 characters'),
   body('phone')
     .optional()
-    .trim()
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage('Phone must be a valid 10-digit number'),
+    .trim(),
   body('email')
     .optional()
     .trim()

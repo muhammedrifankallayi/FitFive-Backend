@@ -33,20 +33,14 @@ const shippingAddressSchema = new Schema({
   phone: {
     type: String,
     required: [true, 'Phone number is required'],
-    trim: true,
-    validate: {
-      validator: function(v: string) {
-        return /^[6-9]\d{9}$/.test(v); // Indian phone number format
-      },
-      message: 'Please enter a valid 10-digit phone number'
-    }
+    trim: true
   },
   email: {
     type: String,
     trim: true,
     lowercase: true,
     validate: {
-      validator: function(v: string) {
+      validator: function (v: string) {
         return !v || /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v);
       },
       message: 'Please enter a valid email address'
@@ -83,7 +77,7 @@ const shippingAddressSchema = new Schema({
     required: [true, 'Pin code is required'],
     trim: true,
     validate: {
-      validator: function(v: string) {
+      validator: function (v: string) {
         return /^[1-9][0-9]{5}$/.test(v); // Indian PIN code format
       },
       message: 'Please enter a valid 6-digit postal code'
@@ -95,9 +89,9 @@ const shippingAddressSchema = new Schema({
     trim: true
   }
 },
-{
-  timestamps: true
-} );
+  {
+    timestamps: true
+  });
 
 
 export const IShippingAddressModel: Model<IShippingAddressModel> = model<IShippingAddressModel>("ShippingAddress", shippingAddressSchema);

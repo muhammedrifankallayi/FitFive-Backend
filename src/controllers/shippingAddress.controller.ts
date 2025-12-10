@@ -14,8 +14,16 @@ class ShippingAddressController {
     const search = (req.query.search as string) || '';
     const sortBy = (req.query.sortBy as string) || 'createdAt';
     const sortOrder = (req.query.sortOrder as string) === 'asc' ? 1 : -1;
+    const userId = req.user._id as string;
 
     const filter: any = {};
+    console.log(userId, "USERID");
+
+    // Filter by userId if provided
+    if (userId) {
+      filter.userId = userId;
+    }
+
     if (search) {
       const re = new RegExp(search, 'i');
       filter.$or = [
@@ -85,8 +93,8 @@ class ShippingAddressController {
     const existing = await ShippingAddressModel.findById(id);
     if (!existing) throw new AppError('Shipping address not found', 404);
     await ShippingAddressModel.findByIdAndDelete(id);
-    const response: ApiResponse = { 
-      success: true, 
+    const response: ApiResponse = {
+      success: true,
       message: 'Shipping address deleted',
       data: null
     };
