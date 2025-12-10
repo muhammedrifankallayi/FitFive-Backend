@@ -109,12 +109,13 @@ class OrderController {
       };
 
       // Create the order
+      
       const newOrder = new Order({
         userId: new Types.ObjectId(userId),
         items: validatedItems,
         paymentDetails: finalPaymentDetails,
         totalAmount,
-        orderNo:'ORD56TST',
+       orderNo: 'ORD' + Date.now(),
         discount,
         deliveryType: deliveryType || 'standard',
         shippingAddressId: new Types.ObjectId(shippingAddressId),
