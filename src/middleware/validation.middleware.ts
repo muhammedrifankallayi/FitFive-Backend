@@ -258,7 +258,7 @@ export const validateUpdateColor = [
 
 // ID validation
 export const validateId = [
-  param('id').trim().isMongoId().withMessage('ID must be a valid MongoDB ObjectId'),
+  param('id').trim(),
   handleValidationErrors,
 ];
 

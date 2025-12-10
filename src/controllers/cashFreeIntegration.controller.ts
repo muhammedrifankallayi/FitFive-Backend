@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Cashfree, CFEnvironment } from "cashfree-pg"; 
+import { Cashfree, CFEnvironment } from "cashfree-pg";
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { ApiResponse } from '../types';
 import Order from '../models/order.model';
@@ -7,9 +7,14 @@ import Order from '../models/order.model';
 
 
 
+// Determine Cashfree environment based on env variable
+const cashfreeEnv = process.env.CASHFREE_ENV === 'production'
+  ? CFEnvironment.PRODUCTION
+  : CFEnvironment.SANDBOX;
+
 // Initialize Cashfree
 const cashfree = new Cashfree(
-  CFEnvironment.SANDBOX, 
+  cashfreeEnv,
   process.env.CASHFREE_APP_ID || "TEST1089341652454be775c03638114461439801",
   process.env.CASHFREE_SECRET_KEY || "cfsk_ma_test_44df66d1d0d81b987daeeaa03f8a997a_2b2f1ba6"
 );
@@ -41,10 +46,10 @@ class CashFreeController {
 
     try {
       // Verify order exists
-    //   const order = await Order.findById(orderId).exec();
-    //   if (!order) {
-    //     throw new AppError('Order not found', 404);
-    //   }
+      //   const order = await Order.findById(orderId).exec();
+      //   if (!order) {
+      //     throw new AppError('Order not found', 404);
+      //   }
 
       // Create CashFree order
       const request = {
@@ -56,9 +61,12 @@ class CashFreeController {
           customer_phone: customerPhone,
         },
         order_meta: {
-          return_url: returnUrl || `${process.env.FRONTEND_URL || 'http://localhost:8080'}/payment/callback?order_id={order_id}`
+          return_url: returnUrl || `${process.env.FRONTEND_URL || 'https://thefitfive.com'}/payment/callback?order_id={order_id}`
         }
       };
+
+      console.log(request, process.env.CASHFREE_SECRET_KEY, process.env.CASHFREE_APP_ID);
+
 
       const cfResponse = await cashfree.PGCreateOrder(request);
 
