@@ -7,6 +7,8 @@ dotenv.config();
 
 const seedDatabase = async () => {
   try {
+    console.log(`Seeding database in ${process.env.NODE_ENV || 'development'} environment...`);
+    
     // Connect to database
     await mongoose.connect(config.database.mongoUri);
     console.log('Connected to MongoDB');
