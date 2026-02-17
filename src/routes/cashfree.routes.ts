@@ -22,8 +22,8 @@ const validateCreatePaymentOrder = [
   body('customerPhone')
     .notEmpty()
     .withMessage('Customer phone is required')
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage('Please provide a valid 10-digit Indian phone number'),
+    .matches(/^\d{10}$/)
+    .withMessage('Please provide a valid 10-digit phone number'),
   body('returnUrl')
     .optional()
     .isURL()

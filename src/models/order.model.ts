@@ -2,7 +2,9 @@ import { Schema, model, Document, Types } from 'mongoose';
 
 // Order item interface
 export interface IOrderItem {
-  inventoryId: Types.ObjectId;
+  itemId: Types.ObjectId;
+  sizeId?: Types.ObjectId;
+  colorId?: Types.ObjectId;
   qty: number;
 }
 
@@ -42,10 +44,18 @@ export interface IOrder extends Document {
 
 // Order item schema
 const OrderItemSchema = new Schema<IOrderItem>({
-  inventoryId: {
+  itemId: {
     type: Schema.Types.ObjectId,
-    ref: 'Inventory',
-    required: [true, 'Inventory ID is required'],
+    ref: 'Item',
+    required: [true, 'Item ID is required'],
+  },
+  sizeId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Size',
+  },
+  colorId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Color',
   },
   qty: {
     type: Number,
@@ -98,7 +108,7 @@ const OrderSchema = new Schema<IOrder>({
     type: [OrderItemSchema],
     required: [true, 'Order items are required'],
     validate: {
-      validator: function(items: IOrderItem[]) {
+      validator: function (items: IOrderItem[]) {
         return items && items.length > 0;
       },
       message: 'Order must contain at least one item',
@@ -195,21 +205,21 @@ OrderSchema.index({ userId: 1 });
 OrderSchema.index({ status: 1 });
 OrderSchema.index({ paymentStatus: 1 });
 OrderSchema.index({ orderDate: -1 });
-OrderSchema.index({ 'items.inventoryId': 1 });
+OrderSchema.index({ 'items.itemId': 1 });
 
 // Virtual for final amount after discount
-OrderSchema.virtual('finalAmount').get(function() {
+OrderSchema.virtual('finalAmount').get(function () {
   return this.totalAmount - this.discount;
 });
 
 // Pre-save middleware to generate orderNo
-OrderSchema.pre('save', async function(next) {
+OrderSchema.pre('save', async function (next) {
   if (this.isNew && !this.orderNo) {
     try {
       // Get the count of existing orders to generate unique orderNo
       const Order = this.constructor as any;
       const lastOrder = await Order.findOne({}, { orderNo: 1 }, { sort: { _id: -1 } });
-      
+
       let orderNumber = 1;
       if (lastOrder && lastOrder.orderNo) {
         // Extract number from orderNo (e.g., "ORD000001" -> 1)
@@ -218,7 +228,7 @@ OrderSchema.pre('save', async function(next) {
           orderNumber = lastNumber + 1;
         }
       }
-      
+
       // Format orderNo with leading zeros (ORD000001, ORD000002, etc.)
       this.orderNo = `ORD${String(orderNumber).padStart(6, '0')}`;
     } catch (err: any) {
@@ -231,11 +241,11 @@ OrderSchema.pre('save', async function(next) {
 });
 
 // Pre-save middleware to set expected delivery date based on delivery type
-OrderSchema.pre('save', function(next) {
+OrderSchema.pre('save', function (next) {
   if (this.isNew && !this.expectedDeliveryDate) {
     const now = new Date();
     let daysToAdd = 7; // Default standard delivery
-    
+
     switch (this.deliveryType) {
       case 'express':
         daysToAdd = 3;
@@ -249,14 +259,14 @@ OrderSchema.pre('save', function(next) {
       default:
         daysToAdd = 7;
     }
-    
+
     this.expectedDeliveryDate = new Date(now.getTime() + (daysToAdd * 24 * 60 * 60 * 1000));
   }
   next();
 });
 
 // Pre-save middleware to set cancelled date when status changes to cancelled
-OrderSchema.pre('save', function(next) {
+OrderSchema.pre('save', function (next) {
   if (this.isModified('status') && this.status === 'cancelled' && !this.cancelledAt) {
     this.cancelledAt = new Date();
   }
@@ -264,7 +274,7 @@ OrderSchema.pre('save', function(next) {
 });
 
 // Pre-save middleware to set actual delivery date when status changes to delivered
-OrderSchema.pre('save', function(next) {
+OrderSchema.pre('save', function (next) {
   if (this.isModified('status') && this.status === 'delivered' && !this.actualDeliveryDate) {
     this.actualDeliveryDate = new Date();
   }
@@ -272,7 +282,7 @@ OrderSchema.pre('save', function(next) {
 });
 
 // Static method to get order statistics
-OrderSchema.statics.getOrderStats = function() {
+OrderSchema.statics.getOrderStats = function () {
   return this.aggregate([
     {
       $group: {
@@ -285,20 +295,20 @@ OrderSchema.statics.getOrderStats = function() {
 };
 
 // Instance method to check if order can be cancelled
-OrderSchema.methods.canBeCancelled = function() {
+OrderSchema.methods.canBeCancelled = function () {
   return ['pending', 'confirmed'].includes(this.status);
 };
 
 // Instance method to cancel order
-OrderSchema.methods.cancelOrder = function(reason: string) {
+OrderSchema.methods.cancelOrder = function (reason: string) {
   if (!this.canBeCancelled()) {
     throw new Error('Order cannot be cancelled in current status');
   }
-  
+
   this.status = 'cancelled';
   this.cancelledAt = new Date();
   this.cancellationReason = reason;
-  
+
   return this.save();
 };
 

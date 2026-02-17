@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { ApiResponse } from '../types';
 import { PurchaseOrderModel, IPurchaseOrder } from '../models/purchaseOrder.model';
-import { InventoryModel } from '../models/inventory.model';
+import ItemModel from '../models/item.model';
 import { SupplierModel } from '../models/supplier.model';
 
 export interface CreatePurchaseOrderDto {
@@ -12,7 +12,7 @@ export interface CreatePurchaseOrderDto {
   status?: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
   notes?: string;
   items: {
-    inventoryId: string;
+    itemId: string;
     qty: number;
     price: number;
   }[];
@@ -25,7 +25,7 @@ export interface UpdatePurchaseOrderDto {
   status?: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
   notes?: string;
   items?: {
-    inventoryId: string;
+    itemId: string;
     qty: number;
     price: number;
   }[];
@@ -54,17 +54,17 @@ class PurchaseOrderController {
       throw new AppError('Supplier not found', 404);
     }
 
-    // Validate inventory items exist and extract proper IDs
+    // Validate items exist and extract proper IDs
     const processedItems = [];
     for (const item of items) {
       // Handle both string ID and object with _id
-      const inventoryId = typeof item.inventoryId === 'string' 
-        ? item.inventoryId 
-        : (item.inventoryId as any)._id;
+      const itemId = typeof item.itemId === 'string'
+        ? item.itemId
+        : (item.itemId as any)._id;
 
-      const inventoryItem = await InventoryModel.findById(inventoryId).exec();
-      if (!inventoryItem) {
-        throw new AppError(`Inventory item ${inventoryId} not found`, 404);
+      const foundItem = await ItemModel.findById(itemId).exec();
+      if (!foundItem) {
+        throw new AppError(`Item ${itemId} not found`, 404);
       }
       if (item.qty < 1) {
         throw new AppError('Quantity must be at least 1', 400);
@@ -72,9 +72,9 @@ class PurchaseOrderController {
       if (item.price < 0) {
         throw new AppError('Price must be non-negative', 400);
       }
-      
+
       processedItems.push({
-        inventoryId,
+        itemId,
         qty: item.qty,
         price: item.price
       });
@@ -101,13 +101,8 @@ class PurchaseOrderController {
 
     const populatedOrder = await PurchaseOrderModel.findById(purchaseOrder._id)
       .populate({
-        path: 'items.inventoryId',
-        select: 'sku size color item stock price',
-        populate: [
-          { path: 'item', select: 'name slug' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex' }
-        ]
+        path: 'items.itemId',
+        select: 'name slug images price compareAtPrice',
       })
       .populate('userId', 'name email')
       .populate('supplierId', 'name email phone address')
@@ -141,13 +136,8 @@ class PurchaseOrderController {
     const [purchaseOrders, total] = await Promise.all([
       PurchaseOrderModel.find(query)
         .populate({
-          path: 'items.inventoryId',
-          select: 'sku size color item stock price',
-          populate: [
-            { path: 'item', select: 'name slug' },
-            { path: 'size', select: 'name code' },
-            { path: 'color', select: 'name hex' }
-          ]
+          path: 'items.itemId',
+          select: 'name slug images price compareAtPrice',
         })
         .populate('userId', 'name email')
         .populate('supplierId', 'name email phone')
@@ -189,13 +179,8 @@ class PurchaseOrderController {
 
     const purchaseOrder = await PurchaseOrderModel.findOne(query)
       .populate({
-        path: 'items.inventoryId',
-        select: 'sku size color item stock price',
-        populate: [
-          { path: 'item', select: 'name slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name slug images price compareAtPrice',
       })
       .populate('userId', 'name email phone')
       .populate('supplierId', 'name email phone address notes')
@@ -230,7 +215,7 @@ class PurchaseOrderController {
     }
 
     const purchaseOrder = await PurchaseOrderModel.findOne(query).exec();
-    
+
     if (!purchaseOrder) {
       throw new AppError('Purchase order not found', 404);
     }
@@ -245,11 +230,11 @@ class PurchaseOrderController {
     }
 
     if (items && items.length > 0) {
-      // Validate inventory items exist
+      // Validate items exist
       for (const item of items) {
-        const inventoryItem = await InventoryModel.findById(item.inventoryId).exec();
-        if (!inventoryItem) {
-          throw new AppError(`Inventory item ${item.inventoryId} not found`, 404);
+        const foundItem = await ItemModel.findById(item.itemId).exec();
+        if (!foundItem) {
+          throw new AppError(`Item ${item.itemId} not found`, 404);
         }
         if (item.qty < 1) {
           throw new AppError('Quantity must be at least 1', 400);
@@ -267,13 +252,8 @@ class PurchaseOrderController {
 
     const updatedOrder = await PurchaseOrderModel.findById(purchaseOrder._id)
       .populate({
-        path: 'items.inventoryId',
-        select: 'sku size color item stock price',
-        populate: [
-          { path: 'item', select: 'name slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name slug images price compareAtPrice',
       })
       .populate('userId', 'name email phone')
       .populate('supplierId', 'name email phone address notes')
@@ -303,7 +283,7 @@ class PurchaseOrderController {
     }
 
     const purchaseOrder = await PurchaseOrderModel.findOneAndDelete(query).exec();
-    
+
     if (!purchaseOrder) {
       throw new AppError('Purchase order not found', 404);
     }

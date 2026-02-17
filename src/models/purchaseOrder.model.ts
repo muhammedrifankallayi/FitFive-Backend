@@ -11,7 +11,7 @@ export interface IPurchaseOrder {
     status?: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
     notes?: string;
     items: {
-        inventoryId: Types.ObjectId;
+        itemId: Types.ObjectId;
         qty: number;
         price: number;
     }[];
@@ -28,8 +28,8 @@ const puchaseOrderSchema = new Schema<IPurchaseOrder>({
     purchaseDate: { type: Date, required: true, default: Date.now },
     totalAmount: { type: Number, required: true },
     discount: { type: Number, default: 0 },
-    status: { 
-        type: String, 
+    status: {
+        type: String,
         enum: ['pending', 'confirmed', 'delivered', 'cancelled'],
         default: 'pending',
         lowercase: true
@@ -37,7 +37,7 @@ const puchaseOrderSchema = new Schema<IPurchaseOrder>({
     notes: { type: String, trim: true },
     items: [
         {
-            inventoryId: { type: Schema.Types.ObjectId, ref: 'Inventory', required: true },
+            itemId: { type: Schema.Types.ObjectId, ref: 'Item', required: true },
             qty: { type: Number, required: true },
             price: { type: Number, required: true },
         }

@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IProductReview {
-userId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   rating: number;
   comment?: string;
   createdAt: Date;
@@ -20,6 +20,8 @@ export interface IItem extends Document {
   costPrice?: number | null;
   tags: string[];
   attributes: Record<string, any>;
+  sizes: mongoose.Types.ObjectId[];
+  colors: mongoose.Types.ObjectId[];
   isActive: boolean;
   isFeatured: boolean;
   createdAt: Date;
@@ -78,6 +80,14 @@ const itemSchema = new Schema<IItem>(
     attributes: {
       type: Schema.Types.Mixed,
       default: {},
+    },
+    sizes: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Size' }],
+      default: [],
+    },
+    colors: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Color' }],
+      default: [],
     },
     isActive: {
       type: Boolean,

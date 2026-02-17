@@ -7,7 +7,7 @@ import sizeRoutes from './size.routes';
 import colorRoutes from './color.routes';
 import shippingRoutes from './shippingAddress.routes';
 import userRoutes from './user.routes';
-import inventoryRoutes from './inventory.routes';
+
 import cartRoutes from './cart.routes';
 import orderRoutes from './order.routes';
 import purchaseOrderRoutes from './purchaseOrder.routes';
@@ -47,8 +47,7 @@ router.use('/sizes', sizeRoutes);
 // Color routes
 router.use('/colors', colorRoutes);
 
-// Inventory routes
-router.use('/inventory', inventoryRoutes);
+
 
 // Cart routes
 router.use('/cart', cartRoutes);

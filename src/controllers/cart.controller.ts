@@ -2,15 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { ApiResponse } from '../types';
 import { CartModel, ICart, ICartItem } from '../models/cart.model';
-import { InventoryModel } from '../models/inventory.model';
+import Item from '../models/item.model';
 
 export interface AddToCartDto {
-  inventoryId: string;
+  itemId: string;
+  sizeId?: string;
+  colorId?: string;
   qty: number;
 }
 
 export interface BulkAddToCartDto {
-  items: Array<{ inventoryId: string; qty: number }>;
+  items: Array<{ itemId: string; sizeId?: string; colorId?: string; qty: number }>;
 }
 
 export interface UpdateCartItemDto {
@@ -27,14 +29,11 @@ class CartController {
 
     let cart = await CartModel.findOne({ userId })
       .populate({
-        path: 'items.inventoryId',
-        select: 'price compareAtPrice size color item stock sku isActive',
-        populate: [
-          { path: 'item', select: 'name description slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name description slug images price compareAtPrice isActive'
       })
+      .populate('items.sizeId')
+      .populate('items.colorId')
       .lean()
       .exec();
 
@@ -45,17 +44,14 @@ class CartController {
         items: [],
         totalAmount: 0
       });
-      
+
       cart = await CartModel.findById(newCart._id)
         .populate({
-          path: 'items.inventoryId',
-          select: 'price compareAtPrice size color item stock sku isActive',
-          populate: [
-            { path: 'item', select: 'name description slug images' },
-            { path: 'size', select: 'name code' },
-            { path: 'color', select: 'name hex rgb' }
-          ]
+          path: 'items.itemId',
+          select: 'name description slug images price compareAtPrice isActive'
         })
+        .populate('items.sizeId')
+        .populate('items.colorId')
         .lean()
         .exec();
     }
@@ -75,28 +71,24 @@ class CartController {
    */
   addToCart = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const userId = req.user?._id;
-    const { inventoryId, qty } = req.body as AddToCartDto;
+    const { itemId, sizeId, colorId, qty } = req.body as AddToCartDto;
 
-    if (!inventoryId || !qty) {
-      throw new AppError('Inventory ID and quantity are required', 400);
+    if (!itemId || !qty) {
+      throw new AppError('Item ID and quantity are required', 400);
     }
 
     if (qty < 1) {
       throw new AppError('Quantity must be at least 1', 400);
     }
 
-    // Check if inventory item exists and has enough stock
-    const inventoryItem = await InventoryModel.findById(inventoryId).exec();
-    if (!inventoryItem) {
-      throw new AppError('Inventory item not found', 404);
+    // Check if item exists
+    const item = await Item.findById(itemId).exec();
+    if (!item) {
+      throw new AppError('Item not found', 404);
     }
 
-    if (!inventoryItem.isActive) {
+    if (!item.isActive) {
       throw new AppError('This item is not available', 400);
-    }
-
-    if (inventoryItem.stock < qty) {
-      throw new AppError(`Only ${inventoryItem.stock} items available in stock`, 400);
     }
 
     // Find or create cart
@@ -109,27 +101,30 @@ class CartController {
       });
     }
 
-    // Check if item already exists in cart
+    // Check if item already exists in cart with same size and color
     const existingItemIndex = cart.items.findIndex(
-      item => item.inventoryId.toString() === inventoryId
+      cartItem =>
+        cartItem.itemId.toString() === itemId &&
+        (cartItem.sizeId ? cartItem.sizeId.toString() : undefined) === sizeId &&
+        (cartItem.colorId ? cartItem.colorId.toString() : undefined) === colorId
     );
 
     if (existingItemIndex > -1) {
       // Update quantity if item exists
       const newQty = cart.items[existingItemIndex].qty + qty;
-      
-      if (inventoryItem.stock < newQty) {
-        throw new AppError(`Only ${inventoryItem.stock} items available in stock`, 400);
-      }
-      
       cart.items[existingItemIndex].qty = newQty;
     } else {
       // Add new item to cart
       cart.items.push({
-        inventoryId: inventoryId as any,
+        itemId: itemId as any,
+        sizeId: sizeId as any,
+        colorId: colorId as any,
         qty
       });
     }
+
+    // Filter out any items that might have lost their itemId (e.g. deleted products)
+    cart.items = cart.items.filter(item => item.itemId);
 
     // Recalculate total amount
     cart.totalAmount = await this.calculateCartTotal(cart.items);
@@ -138,14 +133,11 @@ class CartController {
     // Populate cart for response
     const populatedCart = await CartModel.findById(cart._id)
       .populate({
-        path: 'items.inventoryId',
-        select: 'price compareAtPrice size color item stock sku isActive',
-        populate: [
-          { path: 'item', select: 'name description slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name description slug images price compareAtPrice isActive'
       })
+      .populate('items.sizeId')
+      .populate('items.colorId')
       .lean()
       .exec();
 
@@ -172,8 +164,8 @@ class CartController {
 
     // Validate each item
     for (const item of items) {
-      if (!item.inventoryId || !item.qty) {
-        throw new AppError('Each item must have inventoryId and qty', 400);
+      if (!item.itemId || !item.qty) {
+        throw new AppError('Each item must have itemId and qty', 400);
       }
 
       if (item.qty < 1) {
@@ -181,28 +173,21 @@ class CartController {
       }
     }
 
-    // Check inventory availability for all items
-    const inventoryChecks = await Promise.all(
-      items.map(item => InventoryModel.findById(item.inventoryId).exec())
+    // Check availability for all items
+    const itemChecks = await Promise.all(
+      items.map(item => Item.findById(item.itemId).exec())
     );
 
-    for (let i = 0; i < inventoryChecks.length; i++) {
-      const inventory = inventoryChecks[i];
-      const item = items[i];
+    for (let i = 0; i < itemChecks.length; i++) {
+      const foundItem = itemChecks[i];
+      const requestItem = items[i];
 
-      if (!inventory) {
-        throw new AppError(`Inventory item not found for ID: ${item.inventoryId}`, 404);
+      if (!foundItem) {
+        throw new AppError(`Item not found for ID: ${requestItem.itemId}`, 404);
       }
 
-      if (!inventory.isActive) {
-        throw new AppError(`Item with ID ${item.inventoryId} is not available`, 400);
-      }
-
-      if (inventory.stock < item.qty) {
-        throw new AppError(
-          `Only ${inventory.stock} items available in stock for ID: ${item.inventoryId}`,
-          400
-        );
+      if (!foundItem.isActive) {
+        throw new AppError(`Item with ID ${requestItem.itemId} is not available`, 400);
       }
     }
 
@@ -219,30 +204,29 @@ class CartController {
     // Add or update items in cart
     for (const item of items) {
       const existingItemIndex = cart.items.findIndex(
-        cartItem => cartItem.inventoryId.toString() === item.inventoryId
+        cartItem =>
+          cartItem.itemId?.toString() === item.itemId &&
+          (cartItem.sizeId?.toString() || undefined) === (item.sizeId || undefined) &&
+          (cartItem.colorId?.toString() || undefined) === (item.colorId || undefined)
       );
 
       if (existingItemIndex > -1) {
         // Update quantity if item exists
         const newQty = cart.items[existingItemIndex].qty + item.qty;
-        const inventory = inventoryChecks[items.indexOf(item)];
-
-        if (!inventory || inventory.stock < newQty) {
-          throw new AppError(
-            `Only ${inventory?.stock || 0} items available in stock for ID: ${item.inventoryId}`,
-            400
-          );
-        }
-
         cart.items[existingItemIndex].qty = newQty;
       } else {
         // Add new item to cart
         cart.items.push({
-          inventoryId: item.inventoryId as any,
+          itemId: item.itemId as any,
+          sizeId: item.sizeId as any,
+          colorId: item.colorId as any,
           qty: item.qty
         });
       }
     }
+
+    // Filter out any items that might have lost their itemId (e.g. deleted products)
+    cart.items = cart.items.filter(item => item.itemId);
 
     // Recalculate total amount
     cart.totalAmount = await this.calculateCartTotal(cart.items);
@@ -251,14 +235,11 @@ class CartController {
     // Populate cart for response
     const populatedCart = await CartModel.findById(cart._id)
       .populate({
-        path: 'items.inventoryId',
-        select: 'price compareAtPrice size color item stock sku isActive',
-        populate: [
-          { path: 'item', select: 'name description slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name description slug images price compareAtPrice isActive'
       })
+      .populate('items.sizeId')
+      .populate('items.colorId')
       .lean()
       .exec();
 
@@ -273,29 +254,15 @@ class CartController {
 
   /**
    * Update cart item quantity
-   * @route PATCH /api/cart/items/:inventoryId
+   * @route PATCH /api/cart/items/:cartItemId
    */
   updateCartItem = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const userId = req.user._id;
-    const { inventoryId } = req.params;
+    const { cartItemId } = req.params;
     const { qty } = req.body as UpdateCartItemDto;
 
     if (!qty || qty < 1) {
       throw new AppError('Quantity must be at least 1', 400);
-    }
-
-    // Check if inventory item exists and has enough stock
-    const inventoryItem = await InventoryModel.findById(inventoryId).exec();
-    if (!inventoryItem) {
-      throw new AppError('Inventory item not found', 404);
-    }
-
-    if (!inventoryItem.isActive) {
-      throw new AppError('This item is not available', 400);
-    }
-
-    if (inventoryItem.stock < qty) {
-      throw new AppError(`Only ${inventoryItem.stock} items available in stock`, 400);
     }
 
     const cart = await CartModel.findOne({ userId }).exec();
@@ -304,11 +271,22 @@ class CartController {
     }
 
     const itemIndex = cart.items.findIndex(
-      item => item.inventoryId.toString() === inventoryId
+      cartItem => (cartItem as any)._id.toString() === cartItemId
     );
 
     if (itemIndex === -1) {
       throw new AppError('Item not found in cart', 404);
+    }
+
+    const itemId = cart.items[itemIndex].itemId;
+    // Check if item exists and is active
+    const item = await Item.findById(itemId).exec();
+    if (!item) {
+      throw new AppError('Item not found', 404);
+    }
+
+    if (!item.isActive) {
+      throw new AppError('This item is not available', 400);
     }
 
     // Update quantity
@@ -321,14 +299,11 @@ class CartController {
     // Populate cart for response
     const populatedCart = await CartModel.findById(cart._id)
       .populate({
-        path: 'items.inventoryId',
-        select: 'price compareAtPrice size color item stock sku isActive',
-        populate: [
-          { path: 'item', select: 'name description slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name description slug images price compareAtPrice isActive'
       })
+      .populate('items.sizeId')
+      .populate('items.colorId')
       .lean()
       .exec();
 
@@ -343,11 +318,11 @@ class CartController {
 
   /**
    * Remove item from cart
-   * @route DELETE /api/cart/items/:inventoryId
+   * @route DELETE /api/cart/items/:cartItemId
    */
   removeFromCart = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const userId = req.user._id;
-    const { inventoryId } = req.params;
+    const { cartItemId } = req.params;
 
     const cart = await CartModel.findOne({ userId }).exec();
     if (!cart) {
@@ -355,7 +330,7 @@ class CartController {
     }
 
     const itemIndex = cart.items.findIndex(
-      item => item.inventoryId.toString() === inventoryId
+      cartItem => (cartItem as any)._id.toString() === cartItemId
     );
 
     if (itemIndex === -1) {
@@ -372,14 +347,11 @@ class CartController {
     // Populate cart for response
     const populatedCart = await CartModel.findById(cart._id)
       .populate({
-        path: 'items.inventoryId',
-        select: 'price compareAtPrice size color item stock sku isActive',
-        populate: [
-          { path: 'item', select: 'name description slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name description slug images price compareAtPrice isActive'
       })
+      .populate('items.sizeId')
+      .populate('items.colorId')
       .lean()
       .exec();
 
@@ -425,7 +397,7 @@ class CartController {
     const userId = req.user._id;
 
     const cart = await CartModel.findOne({ userId }).select('items').lean().exec();
-    
+
     const count = cart ? cart.items.reduce((total, item) => total + item.qty, 0) : 0;
 
     const response: ApiResponse<{ count: number }> = {
@@ -444,9 +416,11 @@ class CartController {
     let total = 0;
 
     for (const item of items) {
-      const inventoryItem = await InventoryModel.findById(item.inventoryId).select('price').exec();
-      if (inventoryItem) {
-        total += inventoryItem.price * item.qty;
+      if (!item.itemId) continue;
+
+      const foundItem = await Item.findById(item.itemId).select('price').exec();
+      if (foundItem) {
+        total += foundItem.price * item.qty;
       }
     }
 

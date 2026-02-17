@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { ApiResponse } from '../types';
 import Order, { IOrder, IOrderItem } from '../models/order.model';
-import { InventoryModel } from '../models/inventory.model';
+import Item from '../models/item.model';
 import User from '../models/user.model';
 import { Types } from 'mongoose';
 
@@ -45,12 +45,12 @@ class OrderController {
       let totalAmount = 0;
       const validatedItems: IOrderItem[] = [];
 
-      for (const item of items) {
-        const { inventoryId, qty } = item;
+      for (const orderItem of items) {
+        const { itemId, qty } = orderItem;
 
-        // Validate inventory ID
-        if (!inventoryId || !Types.ObjectId.isValid(inventoryId)) {
-          throw new AppError('Invalid inventory ID', 400);
+        // Validate item ID
+        if (!itemId || !Types.ObjectId.isValid(itemId)) {
+          throw new AppError('Invalid item ID', 400);
         }
 
         // Validate quantity
@@ -58,35 +58,27 @@ class OrderController {
           throw new AppError('Quantity must be at least 1', 400);
         }
 
-        // Check if inventory item exists and has sufficient stock
-        const inventoryItem = await InventoryModel.findById(inventoryId)
-          .populate('item')
-          .populate('size')
-          .populate('color');
+        // Check if item exists
+        const foundItem = await Item.findById(itemId);
 
-        if (!inventoryItem) {
-          throw new AppError(`Inventory item not found: ${inventoryId}`, 404);
+        if (!foundItem) {
+          throw new AppError(`Item not found: ${itemId}`, 404);
         }
 
-        if (!inventoryItem.isActive) {
-          throw new AppError(`Item is not available: ${(inventoryItem.item as any)?.name}`, 400);
-        }
-
-        if (inventoryItem.stock < qty) {
-          throw new AppError(
-            `Insufficient stock for ${(inventoryItem.item as any)?.name}. Available: ${inventoryItem.stock}, Requested: ${qty}`,
-            400
-          );
+        if (!foundItem.isActive) {
+          throw new AppError(`Item is not available: ${foundItem.name}`, 400);
         }
 
         // Add to validated items
         validatedItems.push({
-          inventoryId: new Types.ObjectId(inventoryId),
+          itemId: new Types.ObjectId(itemId),
+          sizeId: orderItem.sizeId ? new Types.ObjectId(orderItem.sizeId) : undefined,
+          colorId: orderItem.colorId ? new Types.ObjectId(orderItem.colorId) : undefined,
           qty,
         });
 
         // Calculate total amount
-        totalAmount += inventoryItem.price * qty;
+        totalAmount += foundItem.price * qty;
       }
 
       // Validate discount
@@ -109,13 +101,12 @@ class OrderController {
       };
 
       // Create the order
-      
       const newOrder = new Order({
         userId: new Types.ObjectId(userId),
         items: validatedItems,
         paymentDetails: finalPaymentDetails,
         totalAmount,
-       orderNo: 'ORD' + Date.now(),
+        orderNo: 'ORD' + Date.now(),
         discount,
         deliveryType: deliveryType || 'standard',
         shippingAddressId: new Types.ObjectId(shippingAddressId),
@@ -124,15 +115,6 @@ class OrderController {
       });
 
       await newOrder.save();
-
-      // Update inventory stock
-      for (const item of validatedItems) {
-        await InventoryModel.findByIdAndUpdate(
-          item.inventoryId,
-          { $inc: { stock: -item.qty } },
-          { new: true }
-        );
-      }
 
       // Populate the order with related data
       const populatedOrder = await Order.findById(newOrder._id)
@@ -149,13 +131,11 @@ class OrderController {
           select: 'fullName phone email addressLine1 addressLine2 city state pinCode country',
         })
         .populate({
-          path: 'items.inventoryId',
-          populate: [
-            { path: 'item', select: 'name description image' },
-            { path: 'size', select: 'name code' },
-            { path: 'color', select: 'name code' },
-          ],
-        });
+          path: 'items.itemId',
+          select: 'name description images price isFeatured'
+        })
+        .populate('items.sizeId')
+        .populate('items.colorId');
 
       const response: ApiResponse<IOrder> = {
         success: true,
@@ -184,14 +164,13 @@ class OrderController {
       }
 
       // Find the order
-      const order = await Order.findById(id).populate({
-        path: 'items.inventoryId',
-        populate: [
-          { path: 'item', select: 'name' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name code' },
-        ],
-      });
+      const order = await Order.findById(id)
+        .populate({
+          path: 'items.itemId',
+          select: 'name description images'
+        })
+        .populate('items.sizeId')
+        .populate('items.colorId');
 
       if (!order) {
         throw new AppError('Order not found', 404);
@@ -218,15 +197,6 @@ class OrderController {
         order.cancelledAt = new Date();
         order.cancellationReason = cancellationReason || 'Cancelled by user';
         await order.save();
-
-        // Restore inventory stock
-        for (const item of order.items) {
-          await InventoryModel.findByIdAndUpdate(
-            item.inventoryId._id,
-            { $inc: { stock: item.qty } },
-            { new: true }
-          );
-        }
 
         // Update payment status if payment was made
         if (order.paymentStatus === 'paid') {
@@ -309,13 +279,11 @@ class OrderController {
             select: 'fullName phone email addressLine1 addressLine2 city state pinCode country',
           })
           .populate({
-            path: 'items.inventoryId',
-            populate: [
-              { path: 'item', select: 'name description images' },
-              { path: 'size', select: 'name code' },
-              { path: 'color', select: 'name code' },
-            ],
+            path: 'items.itemId',
+            select: 'name description images price'
           })
+          .populate('items.sizeId')
+          .populate('items.colorId')
           .sort(sort)
           .skip(skip)
           .limit(limitNum)
@@ -370,13 +338,11 @@ class OrderController {
           select: 'fullName phone email addressLine1 addressLine2 city state pinCode country',
         })
         .populate({
-          path: 'items.inventoryId',
-          populate: [
-            { path: 'item', select: 'name description image' },
-            { path: 'size', select: 'name code' },
-            { path: 'color', select: 'name code' },
-          ],
-        });
+          path: 'items.itemId',
+          select: 'name description images price'
+        })
+        .populate('items.sizeId')
+        .populate('items.colorId');
 
       if (!order) {
         throw new AppError('Order not found', 404);
@@ -442,13 +408,11 @@ class OrderController {
           select: 'name email phone',
         })
         .populate({
-          path: 'items.inventoryId',
-          populate: [
-            { path: 'item', select: 'name description image' },
-            { path: 'size', select: 'name code' },
-            { path: 'color', select: 'name code' },
-          ],
-        });
+          path: 'items.itemId',
+          select: 'name description images price'
+        })
+        .populate('items.sizeId')
+        .populate('items.colorId');
 
       const response: ApiResponse<IOrder> = {
         success: true,
@@ -548,22 +512,19 @@ class OrderController {
 
   getEveryOrder = asyncHandler(
     async (_req: Request, res: Response, _next: NextFunction) => {
-            console.log("HERE");  
+      console.log("HERE");
       const orders = await Order.find()
-
-      
         .populate({
           path: 'userId',
           select: 'name email phone',
         })
         .populate({
-          path: 'items.inventoryId',
-          populate: [
-            { path: 'item', select: 'name description images' },
-            { path: 'size', select: 'name code' },
-            { path: 'color', select: 'name code' },
-          ],
-        }).populate("shippingAddressId")
+          path: 'items.itemId',
+          select: 'name description images price'
+        })
+        .populate('items.sizeId')
+        .populate('items.colorId')
+        .populate("shippingAddressId")
         .lean();
 
       const response: ApiResponse<IOrder[]> = {

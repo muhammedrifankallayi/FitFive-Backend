@@ -2,11 +2,13 @@ import mongoose, { Schema } from "mongoose";
 
 
 export interface ICartItem {
-    inventoryId: Schema.Types.ObjectId;
+    itemId: Schema.Types.ObjectId;
+    sizeId?: Schema.Types.ObjectId;
+    colorId?: Schema.Types.ObjectId;
     qty: number;
 }
 
-export interface ICart  {
+export interface ICart {
     _id: string;
     userId: Schema.Types.ObjectId;
     items: ICartItem[];
@@ -24,12 +26,20 @@ const cartSchema = new Schema<ICart>(
             required: [true, 'User ID is required'],
             index: true,
         },
-        items: [    
+        items: [
             {
-                inventoryId: {
+                itemId: {
                     type: Schema.Types.ObjectId,
-                    ref: 'Inventory',
-                    required: [true, 'Inventory ID is required'],
+                    ref: 'Item',
+                    required: [true, 'Item ID is required'],
+                },
+                sizeId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'Size',
+                },
+                colorId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'Color',
                 },
                 qty: {
                     type: Number,

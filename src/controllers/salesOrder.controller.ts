@@ -2,14 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { ApiResponse } from '../types';
 import { SalesOrderModel, ISalesOrder } from '../models/salesOrder.model';
-import { InventoryModel } from '../models/inventory.model';
+import Item from '../models/item.model';
 import { CustomerModel } from '../models/customer.model';
 
 export interface CreateSalesOrderDto {
   customerId: string;
   totalDiscount?: number;
   items: {
-    inventoryId: string;
+    itemId: string;
     qty: number;
     price: number;
   }[];
@@ -19,7 +19,7 @@ export interface UpdateSalesOrderDto {
   customerId?: string;
   totalDiscount?: number;
   items?: {
-    inventoryId: string;
+    itemId: string;
     qty: number;
     price: number;
   }[];
@@ -49,28 +49,21 @@ class SalesOrderController {
       throw new AppError('Customer not found', 404);
     }
 
-    // Validate inventory items and check stock availability
+    // Validate items
     for (const item of items) {
-      const inventoryItem = await InventoryModel.findById(item.inventoryId).exec();
-      if (!inventoryItem) {
-        throw new AppError(`Inventory item ${item.inventoryId} not found`, 404);
+      const foundItem = await Item.findById(item.itemId).exec();
+      if (!foundItem) {
+        throw new AppError(`Item ${item.itemId} not found`, 404);
       }
-      
-      if (!inventoryItem.isActive) {
-        throw new AppError(`Inventory item ${inventoryItem.sku} is not active`, 400);
+
+      if (!foundItem.isActive) {
+        throw new AppError(`Item ${foundItem.name} is not active`, 400);
       }
-      
-      if (inventoryItem.stock < item.qty) {
-        throw new AppError(
-          `Insufficient stock for item ${inventoryItem.sku}. Available: ${inventoryItem.stock}, Required: ${item.qty}`, 
-          400
-        );
-      }
-      
+
       if (item.qty < 1) {
         throw new AppError('Quantity must be at least 1', 400);
       }
-      
+
       if (item.price < 0) {
         throw new AppError('Price must be non-negative', 400);
       }
@@ -94,24 +87,10 @@ class SalesOrderController {
       salesDate: new Date()
     });
 
-    // Update inventory stock for each item
-    for (const item of items) {
-      await InventoryModel.findByIdAndUpdate(
-        item.inventoryId,
-        { $inc: { stock: -item.qty } },
-        { new: true }
-      ).exec();
-    }
-
     const populatedOrder = await SalesOrderModel.findById(salesOrder._id)
       .populate({
-        path: 'items.inventoryId',
-        select: 'sku size color item stock price compareAtPrice',
-        populate: [
-          { path: 'item', select: 'name slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name slug images price compareAtPrice',
       })
       .populate('userId', 'name email')
       .populate('customerId', 'name email phone address')
@@ -147,13 +126,8 @@ class SalesOrderController {
     const [salesOrders, total] = await Promise.all([
       SalesOrderModel.find(query)
         .populate({
-          path: 'items.inventoryId',
-          select: 'sku size color item stock price',
-          populate: [
-            { path: 'item', select: 'name slug' },
-            { path: 'size', select: 'name code' },
-            { path: 'color', select: 'name hex' }
-          ]
+          path: 'items.itemId',
+          select: 'name slug images price',
         })
         .populate('userId', 'name email')
         .populate('customerId', 'name email phone')
@@ -190,13 +164,8 @@ class SalesOrderController {
 
     const salesOrder = await SalesOrderModel.findOne({ _id: id, userId })
       .populate({
-        path: 'items.inventoryId',
-        select: 'sku size color item stock price compareAtPrice isActive',
-        populate: [
-          { path: 'item', select: 'name description slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name slug images price compareAtPrice isActive',
       })
       .populate('userId', 'name email phone')
       .populate('customerId', 'name email phone address notes')
@@ -226,13 +195,10 @@ class SalesOrderController {
     const { customerId, items, totalDiscount } = req.body as UpdateSalesOrderDto;
 
     const salesOrder = await SalesOrderModel.findOne({ _id: id, userId }).exec();
-    
+
     if (!salesOrder) {
       throw new AppError('Sales order not found', 404);
     }
-
-    // Store original items for stock reversal
-    const originalItems = [...salesOrder.items];
 
     // Validate customer if being updated
     if (customerId) {
@@ -253,53 +219,24 @@ class SalesOrderController {
 
     // Update items if provided
     if (items && items.length > 0) {
-      // Validate new items and stock
+      // Validate new items
       for (const item of items) {
-        const inventoryItem = await InventoryModel.findById(item.inventoryId).exec();
-        if (!inventoryItem) {
-          throw new AppError(`Inventory item ${item.inventoryId} not found`, 404);
+        const foundItem = await Item.findById(item.itemId).exec();
+        if (!foundItem) {
+          throw new AppError(`Item ${item.itemId} not found`, 404);
         }
-        
-        if (!inventoryItem.isActive) {
-          throw new AppError(`Inventory item ${inventoryItem.sku} is not active`, 400);
+
+        if (!foundItem.isActive) {
+          throw new AppError(`Item ${foundItem.name} is not active`, 400);
         }
-        
+
         if (item.qty < 1) {
           throw new AppError('Quantity must be at least 1', 400);
         }
-        
+
         if (item.price < 0) {
           throw new AppError('Price must be non-negative', 400);
         }
-      }
-
-      // Reverse original stock changes
-      for (const originalItem of originalItems) {
-        await InventoryModel.findByIdAndUpdate(
-          originalItem.inventoryId,
-          { $inc: { stock: originalItem.qty } },
-          { new: true }
-        ).exec();
-      }
-
-      // Check stock availability for new items
-      for (const item of items) {
-        const inventoryItem = await InventoryModel.findById(item.inventoryId).exec();
-        if (inventoryItem!.stock < item.qty) {
-          throw new AppError(
-            `Insufficient stock for item ${inventoryItem!.sku}. Available: ${inventoryItem!.stock}, Required: ${item.qty}`, 
-            400
-          );
-        }
-      }
-
-      // Apply new stock changes
-      for (const item of items) {
-        await InventoryModel.findByIdAndUpdate(
-          item.inventoryId,
-          { $inc: { stock: -item.qty } },
-          { new: true }
-        ).exec();
       }
 
       salesOrder.items = items as any;
@@ -313,13 +250,8 @@ class SalesOrderController {
 
     const updatedOrder = await SalesOrderModel.findById(salesOrder._id)
       .populate({
-        path: 'items.inventoryId',
-        select: 'sku size color item stock price compareAtPrice',
-        populate: [
-          { path: 'item', select: 'name slug images' },
-          { path: 'size', select: 'name code' },
-          { path: 'color', select: 'name hex rgb' }
-        ]
+        path: 'items.itemId',
+        select: 'name slug images price compareAtPrice',
       })
       .populate('userId', 'name email phone')
       .populate('customerId', 'name email phone address notes')
@@ -336,7 +268,7 @@ class SalesOrderController {
   });
 
   /**
-   * Delete sales order (reverses stock)
+   * Delete sales order
    * @route DELETE /api/sales-orders/:id
    */
   deleteSalesOrder = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
@@ -344,25 +276,16 @@ class SalesOrderController {
     const userId = req.user._id;
 
     const salesOrder = await SalesOrderModel.findOne({ _id: id, userId }).exec();
-    
+
     if (!salesOrder) {
       throw new AppError('Sales order not found', 404);
-    }
-
-    // Reverse stock changes
-    for (const item of salesOrder.items) {
-      await InventoryModel.findByIdAndUpdate(
-        item.inventoryId,
-        { $inc: { stock: item.qty } },
-        { new: true }
-      ).exec();
     }
 
     await SalesOrderModel.findByIdAndDelete(id).exec();
 
     const response: ApiResponse<null> = {
       success: true,
-      message: 'Sales order deleted successfully and stock restored',
+      message: 'Sales order deleted successfully',
       data: null,
     };
 
@@ -375,7 +298,7 @@ class SalesOrderController {
    */
   getSalesStats = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const userId = req.user._id;
-    
+
     const [totalOrders, totalRevenue] = await Promise.all([
       SalesOrderModel.countDocuments({ userId }).exec(),
       SalesOrderModel.aggregate([
@@ -387,15 +310,15 @@ class SalesOrderController {
     // Get recent orders (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const [recentOrders, recentRevenue] = await Promise.all([
-      SalesOrderModel.countDocuments({ 
+      SalesOrderModel.countDocuments({
         userId,
         createdAt: { $gte: thirtyDaysAgo }
       }).exec(),
       SalesOrderModel.aggregate([
-        { 
-          $match: { 
+        {
+          $match: {
             userId: userId,
             createdAt: { $gte: thirtyDaysAgo }
           }

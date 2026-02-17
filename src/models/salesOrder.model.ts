@@ -9,7 +9,7 @@ export interface ISalesOrder {
     customerId: Types.ObjectId;
     totalDiscount: number;
     items: {
-        inventoryId: Types.ObjectId;
+        itemId: Types.ObjectId;
         qty: number;
         price: number;
     }[];
@@ -26,7 +26,7 @@ const salesOrderSchema = new Schema<ISalesOrder>({
     totalDiscount: { type: Number, required: true },
     items: [
         {
-            inventoryId: { type: Schema.Types.ObjectId, ref: 'Inventory', required: true },
+            itemId: { type: Schema.Types.ObjectId, ref: 'Item', required: true },
             qty: { type: Number, required: true },
             price: { type: Number, required: true },
         }

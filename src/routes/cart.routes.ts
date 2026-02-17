@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import cartController from '../controllers/cart.controller';
 import { protect } from '../middleware/auth.middleware';
-import { validateId } from '../middleware/validation.middleware';
 
 const router = Router();
 
@@ -21,10 +20,10 @@ router.post('/add', cartController.addToCart);
 router.post('/bulk-add', cartController.bulkAddToCart);
 
 // Update cart item quantity
-router.patch('/items/:inventoryId', validateId, cartController.updateCartItem);
+router.patch('/items/:cartItemId', cartController.updateCartItem);
 
 // Remove item from cart
-router.delete('/items/:inventoryId', validateId, cartController.removeFromCart);
+router.delete('/items/:cartItemId', cartController.removeFromCart);
 
 // Clear entire cart
 router.delete('/', cartController.clearCart);

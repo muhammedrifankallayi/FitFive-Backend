@@ -11,8 +11,8 @@ class AuthController {
    */
   private generateAccessToken(id: string, email: string, role: string): string {
     return jwt.sign(
-      { id, email, role }, 
-      config.jwt.secret, 
+      { id, email, role },
+      config.jwt.secret,
       { expiresIn: config.jwt.expire } as jwt.SignOptions
     );
   }
@@ -22,8 +22,8 @@ class AuthController {
    */
   private generateRefreshToken(id: string): string {
     return jwt.sign(
-      { id, type: 'refresh' }, 
-      config.jwt.refreshSecret, 
+      { id, type: 'refresh' },
+      config.jwt.refreshSecret,
       { expiresIn: config.jwt.refreshExpire } as jwt.SignOptions
     );
   }
@@ -34,11 +34,11 @@ class AuthController {
   private generateTokens(id: string, email: string, role: string) {
     const accessToken = this.generateAccessToken(id, email, role);
     const refreshToken = this.generateRefreshToken(id);
-    
+
     // Calculate refresh token expiry date
     const refreshTokenExpiry = new Date();
-    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7); // 7 days
-    
+    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 30); // 30 days
+
     return { accessToken, refreshToken, refreshTokenExpiry };
   }
 
@@ -116,13 +116,13 @@ class AuthController {
 
       // Verify password
       const isPasswordValid = await user.comparePassword(password);
-   
-      if(email == 'admin@example.com'&& password == 'Admin@123'){
-     
-      }else
-      if (!isPasswordValid) {
-        throw new AppError('Invalid Password', 401);
-      }
+
+      if (email == 'admin@example.com' && password == 'Admin@123') {
+
+      } else
+        if (!isPasswordValid) {
+          throw new AppError('Invalid Password', 401);
+        }
 
       // Generate tokens
       const { accessToken, refreshToken, refreshTokenExpiry } = this.generateTokens(

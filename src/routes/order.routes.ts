@@ -11,11 +11,11 @@ const validateCreateOrder = [
   body('items')
     .isArray({ min: 1 })
     .withMessage('Items must be an array with at least one item'),
-  body('items.*.inventoryId')
+  body('items.*.itemId')
     .notEmpty()
-    .withMessage('Inventory ID is required')
+    .withMessage('Item ID is required')
     .isMongoId()
-    .withMessage('Inventory ID must be a valid MongoDB ID'),
+    .withMessage('Item ID must be a valid MongoDB ID'),
   body('items.*.qty')
     .isInt({ min: 1 })
     .withMessage('Quantity must be a positive integer'),

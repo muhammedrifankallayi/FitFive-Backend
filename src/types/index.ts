@@ -111,6 +111,8 @@ export interface Item {
   image?: string;
   tags: string[];
   attributes: Record<string, any>;
+  sizes: string[] | any[]; // URLs or Objects depending on populate
+  colors: string[] | any[];
   isActive: boolean;
   isFeatured: boolean;
   createdAt: Date;
@@ -128,6 +130,8 @@ export interface CreateItemDto {
   costPrice?: number | null;
   tags?: string[];
   attributes?: Record<string, any>;
+  sizes?: string[];
+  colors?: string[];
   isActive?: boolean;
   isFeatured?: boolean;
 }
@@ -143,6 +147,8 @@ export interface UpdateItemDto {
   costPrice?: number | null;
   tags?: string[];
   attributes?: Record<string, any>;
+  sizes?: string[];
+  colors?: string[];
   isActive?: boolean;
   isFeatured?: boolean;
 }

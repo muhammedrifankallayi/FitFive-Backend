@@ -109,6 +109,8 @@ class ItemController {
         costPrice: itemData.costPrice || null,
         tags: itemData.tags || [],
         attributes: itemData.attributes || {},
+        sizes: (itemData as any).sizes || [],
+        colors: (itemData as any).colors || [],
         isActive: itemData.isActive !== undefined ? itemData.isActive : true,
         isFeatured: itemData.isFeatured || false,
       });
