@@ -8,7 +8,6 @@ const router = Router();
 
 // Validation rules for creating payment order
 const validateCreatePaymentOrder = [
-
   body('amount')
     .notEmpty()
     .withMessage('Amount is required')

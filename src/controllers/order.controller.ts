@@ -218,6 +218,90 @@ class OrderController {
   );
 
   /**
+   * Return an order (within 1 day of delivery)
+   * @route POST /api/orders/:id/return
+   * @access Private
+   */
+  returnOrder = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      const { id } = req.params;
+      const { returnReason } = req.body;
+      const userId = (req as any).user?.id;
+
+      // Validate order ID
+      if (!Types.ObjectId.isValid(id)) {
+        throw new AppError('Invalid order ID', 400);
+      }
+
+      // Find the order
+      const order = await Order.findById(id)
+        .populate({
+          path: 'items.itemId',
+          select: 'name description images'
+        })
+        .populate('items.sizeId')
+        .populate('items.colorId');
+
+      if (!order) {
+        throw new AppError('Order not found', 404);
+      }
+
+      // Check if user owns the order or is admin
+      const user = (req as any).user;
+      if (order.userId.toString() !== userId && user.role !== 'admin') {
+        throw new AppError('Not authorized to return this order', 403);
+      }
+
+      // Check if order is delivered
+      if (order.status !== 'delivered') {
+        throw new AppError(
+          `Order cannot be returned. Only delivered orders can be returned. Current status: ${order.status}`,
+          400
+        );
+      }
+
+      // Check 1-day return window
+      if (!order.actualDeliveryDate) {
+        throw new AppError('Delivery date not recorded. Cannot process return.', 400);
+      }
+
+      const deliveredAt = new Date(order.actualDeliveryDate).getTime();
+      const now = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+
+      if ((now - deliveredAt) > oneDayMs) {
+        throw new AppError(
+          'Return window has expired. Orders can only be returned within 1 day of delivery.',
+          400
+        );
+      }
+
+      try {
+        order.status = 'returned';
+        (order as any).returnedAt = new Date();
+        (order as any).returnReason = returnReason || 'Returned by customer';
+        await order.save();
+
+        // Mark payment as refunded if paid
+        if (order.paymentStatus === 'paid') {
+          order.paymentStatus = 'refunded';
+          await order.save();
+        }
+
+        const response: ApiResponse<IOrder> = {
+          success: true,
+          message: 'Order return request submitted successfully',
+          data: order,
+        };
+
+        res.status(200).json(response);
+      } catch (error: any) {
+        throw new AppError(error.message || 'Failed to process return', 400);
+      }
+    }
+  );
+
+  /**
    * Get all orders for a user or all orders (admin)
    * @route GET /api/orders
    * @access Private
@@ -537,6 +621,36 @@ class OrderController {
     }
   );
 
+
+  /**
+   * Delete an order (admin only)
+   * @route DELETE /api/orders/:id
+   * @access Private/Admin
+   */
+  deleteOrder = asyncHandler(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      const { id } = req.params;
+
+      if (!Types.ObjectId.isValid(id)) {
+        throw new AppError('Invalid order ID', 400);
+      }
+
+      const order = await Order.findById(id);
+      if (!order) {
+        throw new AppError('Order not found', 404);
+      }
+
+      await Order.findByIdAndDelete(id);
+
+      const response: ApiResponse<null> = {
+        success: true,
+        message: 'Order deleted successfully',
+        data: null,
+      };
+
+      res.status(200).json(response);
+    }
+  );
 
 }
 

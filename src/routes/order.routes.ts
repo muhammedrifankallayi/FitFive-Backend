@@ -70,6 +70,19 @@ const validateCancelOrder = [
   handleValidationErrors,
 ];
 
+// Validation rules for returning order
+const validateReturnOrder = [
+  param('id')
+    .isMongoId()
+    .withMessage('Invalid order ID'),
+  body('returnReason')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Return reason cannot exceed 500 characters'),
+  handleValidationErrors,
+];
+
 // Validation rules for updating order status
 const validateUpdateOrderStatus = [
   param('id')
@@ -191,6 +204,22 @@ router.get('/:id', protect, validateId, orderController.getOrderById);
 router.post('/:id/cancel', protect, validateCancelOrder, orderController.cancelOrder);
 
 /**
+ * @route   PUT /api/orders/:id/cancel
+ * @desc    Cancel an order (admin uses PUT)
+ * @access  Private
+ * @body    { cancellationReason? }
+ */
+router.put('/:id/cancel', protect, validateCancelOrder, orderController.cancelOrder);
+
+/**
+ * @route   POST /api/orders/:id/return
+ * @desc    Return an order (within 1 day of delivery)
+ * @access  Private
+ * @body    { returnReason? }
+ */
+router.post('/:id/return', protect, validateReturnOrder, orderController.returnOrder);
+
+/**
  * @route   PUT /api/orders/:id/status
  * @desc    Update order status (admin only)
  * @access  Private/Admin
@@ -205,6 +234,13 @@ router.put('/:id/status', protect, restrictTo('admin'), validateUpdateOrderStatu
  * @body    { paymentStatus, transactionId?, paidAt? }
  */
 router.put('/:id/payment', protect, validateUpdatePaymentStatus, orderController.updatePaymentStatus);
+
+/**
+ * @route   DELETE /api/orders/:id
+ * @desc    Delete an order (admin only)
+ * @access  Private/Admin
+ */
+router.delete('/:id', protect, restrictTo('admin'), validateId, orderController.deleteOrder);
 
 
 

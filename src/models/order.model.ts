@@ -36,6 +36,8 @@ export interface IOrder extends Document {
   actualDeliveryDate?: Date;
   cancelledAt?: Date;
   cancellationReason?: string;
+  returnedAt?: Date;
+  returnReason?: string;
   trackingNumber?: string;
   notes?: string;
   createdAt: Date;
@@ -184,6 +186,14 @@ const OrderSchema = new Schema<IOrder>({
     trim: true,
     maxlength: [500, 'Cancellation reason cannot exceed 500 characters'],
   },
+  returnedAt: {
+    type: Date,
+  },
+  returnReason: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Return reason cannot exceed 500 characters'],
+  },
   trackingNumber: {
     type: String,
     trim: true,
@@ -308,6 +318,29 @@ OrderSchema.methods.cancelOrder = function (reason: string) {
   this.status = 'cancelled';
   this.cancelledAt = new Date();
   this.cancellationReason = reason;
+
+  return this.save();
+};
+
+// Instance method to check if order can be returned (within 1 day of delivery)
+OrderSchema.methods.canBeReturned = function () {
+  if (this.status !== 'delivered') return false;
+  if (!this.actualDeliveryDate) return false;
+  const deliveredAt = new Date(this.actualDeliveryDate).getTime();
+  const now = Date.now();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  return (now - deliveredAt) <= oneDayMs;
+};
+
+// Instance method to return order
+OrderSchema.methods.returnOrder = function (reason: string) {
+  if (!this.canBeReturned()) {
+    throw new Error('Order cannot be returned. Return window is 1 day after delivery.');
+  }
+
+  this.status = 'returned';
+  this.returnedAt = new Date();
+  this.returnReason = reason;
 
   return this.save();
 };
